@@ -1,24 +1,79 @@
-# Compiled class file
+### 开发环境专属 ###
+# JAVA
 *.class
-
-# Log file
-*.log
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
 *.jar
 *.war
-*.nar
 *.ear
-*.zip
-*.tar.gz
-*.rar
+*.nar
+*.log
+*.tmp
+*.ctxt
+.mtj.tmp/
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-replay_pid*
+# IntelliJ全家桶
+.idea/
+*.iml
+*.ipr
+*.iws
+*.ids
+*.orig
+*.versionsBackup
+
+# IDE 工作区文件
+workspace.xml
+shelf/
+*.eml
+
+# 编译输出目录
+out/
+target/
+
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+### 构建产物 ###
+# Maven
+target/
+# Gradle
+.gradle/
+
+### 运行时文件 ###
+*.log
+logs/
+!logs/README.md  # 保留日志目录说明文件
+*.tmp
+*.swp
+*.swo
+*.bak
+
+
+### 系统指纹 ###
+.DS_Store
+Thumbs.db
+
+### 依赖管理 ###
+# Maven本地仓库状态
+/repository/
+*.lastUpdated
+
+# 前端依赖（若含前端模块）
+node_modules/
+bower_components/
+
+### Spring Boot特殊项 ###
+# 热加载配置
+spring-boot-devtools-*.jar
+
+# 项目级全局排除
+/.idea/git-toolbox/
+/.idea/history/
+# IDE历史版本目录
+.history/  # VS Code本地历史记录
+
+### 其他 ###
+application.yml  # 根据项目需要排除配置文件
+/config/secret/
+.env
