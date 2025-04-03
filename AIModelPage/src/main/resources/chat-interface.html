@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>AI聊天界面</title>
+    <style>
+        /* 全局样式重置和基础字体设置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+        
+        /* 页面主体布局设置 */
+        body {
+            display: flex; /* 使用弹性布局 */
+            height: 100vh; /* 设置高度为视口高度 */
+        }
+        
+        /* 左侧会话列表样式 */
+        .sidebar {
+            min-width: 230px; /* 最小宽度限制 */
+            border-right: 1px solid #e0e0e0; /* 左侧边框 */
+            background-color: #f9f9f9; /* 背景色 */
+            display: flex; /* 使用弹性布局 */
+            flex-direction: column; /* 垂直方向排列 */
+        }
+        
+        /* 侧边栏头部样式 */
+        .sidebar-header {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0; /* 底部边框 */
+            font-weight: bold; /* 字体加粗 */
+            text-align: center; /* 文字居中 */
+            background-color: #f0f0f0; /* 背景色 */
+        }
+        
+        /* 侧边栏菜单项样式 */
+        .sidebar-menu li {
+            padding: 15px;
+            cursor: pointer; /* 鼠标指针样式 */
+            border-bottom: 1px solid #e9e9e9; /* 底部边框 */
+        }
+        /* 当前选中的菜单项样式 */
+        .sidebar-menu li.active {
+            background-color: #e6e6e6; /* 选中状态背景色 */
+        }
+        
+        /* 右侧聊天区域容器样式 */
+        .chat-container {
+            flex-grow: 1; /* 占用剩余空间 */
+            display: flex;
+            flex-direction: column; /* 垂直方向排列 */
+            position: relative;
+            background-color: #f0f0f0;
+        }
+                
+        /* 聊天消息列表区域样式 */
+        .chat-messages {
+            flex-grow: 1; /* 占用剩余空间 */
+            overflow-y: auto; /* 垂直滚动 */
+            padding: 20px;
+            padding-top: 60px; /* 为顶部模型选择器留出空间 */
+        }
+        
+        /* 单条消息样式 */
+        .message {
+            margin-bottom: 20px;
+            max-width: 70%; /* 限制消息最大宽度 */
+            display: flex;
+        }
+        
+        /* 用户消息样式 */
+        .message-user {
+            margin-left: auto; /* 靠右对齐 */
+            justify-content:flex-end; /* 靠右对齐 */
+        }
+        
+        /* 聊天头像样式 */
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 5px;
+            background-color: #4CAF50; /* 用户头像背景色 */
+            display: flex;
+            align-items: center; /* 垂直居中 */
+            justify-content: center; /* 水平居中 */
+            color: white;
+            margin: 0px 10px;
+        }
+        
+        /* AI头像样式 */
+        .message-ai .avatar {
+            background-color: #5b6be5; /* AI头像背景色 */
+            padding: 0px 20px;
+        }
+        
+        /* 消息内容容器样式 */
+        .message-content {
+            background-color: #fff; /* 用户消息背景色 */
+            padding: 10px 15px;
+            border: 1px solid #e0e0e0; /* 添加边框 */
+            border-radius: 8px;
+            position: relative;
+        }
+        
+        /* 消息头部样式 */
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #888; /* 次要信息颜色 */
+        }
+        
+        /* 消息文本样式 */
+        .message-text {
+            line-height: 1.7; /* 行高 */
+          }
+        
+        /* 消息底部样式 */
+        .message-footer {
+            display: flex;
+            justify-content: flex-end; /* 右对齐 */
+            margin-top: 5px;
+            font-size: 12px;
+            color: #888; /* 次要信息颜色 */
+        }
+        
+   
+        /* 底部输入区域容器样式 */
+        .chat-input-container {
+            border-top: 1px solid #e0e0e0; /* 顶部边框 */
+            padding: 15px;
+            background-color: #fff;
+        }
+        
+        /* 输入框外层容器样式 */
+        .chat-input-wrapper {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 3px;
+        }
+        
+        /* 输入框样式 */
+        .chat-input {
+            width: 100%;
+            min-height: 120px; /* 最小高度 */
+            border: none;
+            outline: none; /* 移除焦点边框 */
+            resize: none; /* 禁止手动调整大小 */
+            padding: 5px;
+            font-size: 21px;
+        }
+        
+        /* 工具栏样式 */
+        .chat-toolbar {
+            display: flex;
+            padding: 5px 0;
+            border-top: 1px solid #eee; /* 顶部分隔线 */
+        }
+        
+        /* 工具栏按钮样式 */
+        .toolbar-button {
+            margin-right: 15px;
+            color: #666;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 26px; /* 图标大小 */
+        }
+        
+        /* 发送按钮样式 */
+        .send-button {
+            position: absolute; /* 绝对定位 */
+            right: 30px;
+            background: #4dafd91f; /* 半透明背景 */
+            border: none;
+            color: #666;
+            cursor: pointer; /* 鼠标悬停时改变鼠标样式 */
+            border-radius: 10%;
+            font-size: 21px;
+            padding: 2px 10px ;
+        }
+        /* 发送按钮悬停效果 */
+       button:hover {
+            background: #4dafd93f; /* 鼠标悬停时改变背景颜色 */
+        }
+    </style>
+</head>
+<body>
+    <!-- 左侧会话列表 -->
+    <div class="sidebar">
+        <div class="sidebar-header">会话列表</div>
+        <ul class="sidebar-menu">
+            <li class="active">当前对话</li>
+            <li>AI搜索</li>
+            <li>帮我画图</li>
+        </ul>
+    </div>
+    <!-- 右侧聊天区域 -->
+    <div class="chat-container">
+        <!-- 聊天消息区域 -->
+        <div class="chat-messages">
+            <!-- 用户消息示例 -->
+            <div class="message message-user">
+                <div class="message-content">
+                    <div class="message-text">你好，请介绍一下蜗牛学苑？</div>
+                </div>
+                <div class="avatar">用户</div>
+            </div>
+            <!-- AI消息示例 -->
+            <div class="message message-ai">
+                <div class="avatar">AI</div>
+                <div class="message-content">
+                    <div class="message-header">
+                        deepseek-r1:1.5b | Ollama
+                        <span style="margin-left: 10px;">04/02 13:49</span>
+                    </div>
+                    <div class="message-text">
+                      你好！蜗牛学苑是一家专注于IT技术培训的教育机构，主要提供编程语言、开发框架、数据分析、人工智能等方面的培训课程。
+                      <br>
+                      </div>
+                    <div class="message-footer">
+                        Tokens: 871 ↑ 7,498 ↓
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 底部输入区域 -->
+        <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+                <textarea class="chat-input" placeholder="在这里输入消息..."></textarea>
+                <div class="chat-toolbar">
+                    <!-- 工具栏按钮 -->
+                    <button class="toolbar-button">📄</button>
+                    <button class="toolbar-button">🖼️</button>
+                    <button class="toolbar-button">🌐</button>
+                    <button class="toolbar-button">🎙️</button>
+                    <button class="send-button">📤发送</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

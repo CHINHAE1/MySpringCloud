@@ -30,21 +30,22 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public List<Product> findAllProducts() {
         // 获取下一个服务地址
-        String baseUrl = getProductServiceUrlWithFallback();
-        String url = baseUrl + "/product/list";
+        String baseUrl = getProductServiceUrlWithFallback(); // 获取服务地址
+        String url = baseUrl + "/product/list"; // 构建完整URL
         
         try {
             ResponseEntity<List<Product>> response = restTemplate.exchange(
                     url,
                     HttpMethod.GET,
                     null,
-                    new ParameterizedTypeReference<List<Product>>() {}
+                    new ParameterizedTypeReference<List<Product>>() {} 
             );
+            // 返回的Product对象中包含了端口信息
             return response.getBody();
         } catch (RestClientException e) {
             // 服务不可用，移除当前服务地址
-            RestTemplateConfig.removeProductServiceUrl(baseUrl);
-            // 重试另一个服务
+            RestTemplateConfig.removeProductServiceUrl(baseUrl); 
+            // 递归调用重试另一个服务
             return findAllProducts(); 
         }
     }
@@ -52,30 +53,35 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public String createOrder(Integer uid, Integer pid, Integer number) throws Exception {
         // 1. 先通过商品的pid查询商品信息
-        String baseUrl = getProductServiceUrlWithFallback();
-        String productUrl = baseUrl + "/product/" + pid;
+        String baseUrl = getProductServiceUrlWithFallback(); 
+        String productUrl = baseUrl + "/product/" + pid; 
         
         Product product;
         try {
-            product = restTemplate.getForEntity(productUrl, Product.class).getBody();
+            // 发送GET请求获取商品
+            product = restTemplate.getForEntity(productUrl, Product.class).getBody(); 
         } catch (RestClientException e) {
             // 服务不可用，移除当前服务地址
-            RestTemplateConfig.removeProductServiceUrl(baseUrl);
-            return createOrder(uid, pid, number); // 重试
+            RestTemplateConfig.removeProductServiceUrl(baseUrl); 
+            // 递归重试
+            return createOrder(uid, pid, number); 
         }
         
         if (product == null) {
-            throw new Exception("商品不存在");
+            throw new Exception("商品不存在"); 
         }
         
         // 2. 调用product的接口扣减库存
-        String deductUrl = getProductServiceUrlWithFallback() + "/product/deduct?pid=" + pid + "&num=" + number;
+        // 构建扣减库存URL
+        String deductUrl = getProductServiceUrlWithFallback() + "/product/deduct?pid=" + pid + "&num=" + number; 
         try {
-            restTemplate.postForEntity(deductUrl, null, Product.class);
+            // 发送POST请求扣减库存
+            restTemplate.postForEntity(deductUrl, null, Product.class); 
         } catch (RestClientException e) {
             // 服务不可用，移除当前服务地址并重试
             RestTemplateConfig.removeProductServiceUrl(baseUrl);
-            return createOrder(uid, pid, number);
+            // 递归重试
+            return createOrder(uid, pid, number); 
         }
         
         // 3. 创建订单对象
@@ -89,7 +95,8 @@ public class OrderServiceImpl implements OrderService {
         // 4. 保存订单信息
         orderRepository.save(order);
         
-        return "success - used service: " + baseUrl;
+        // 返回成功信息和使用的服务地址
+        return "success - used service: " + baseUrl; 
     }
     
     /**
@@ -98,15 +105,26 @@ public class OrderServiceImpl implements OrderService {
      */
     private String getProductServiceUrlWithFallback() {
         if (RestTemplateConfig.PRODUCT_SERVICE_URLS.isEmpty()) {
-            // 如果没有可用服务，尝试恢复默认服务列表
-            RestTemplateConfig.addProductServiceUrl("http://localhost:8081");
-            RestTemplateConfig.addProductServiceUrl("http://localhost:8082");
-            RestTemplateConfig.addProductServiceUrl("http://localhost:8083");
+            System.out.println("警告：没有可用的产品服务，尝试恢复默认服务列表");
+            
+            // 尝试连接默认端口的服务
+            String[] defaultPorts = {"8081", "8082", "8083"};
+            for (String port : defaultPorts) {
+                try {
+                    String url = "http://localhost:" + port;
+                    restTemplate.getForEntity(url + "/product/list", Object.class);
+                    RestTemplateConfig.addProductServiceUrl(url);
+                    System.out.println("成功恢复服务: " + url);
+                } catch (Exception e) {
+                    System.out.println("尝试恢复服务失败: http://localhost:" + port);
+                }
+            }
             
             if (RestTemplateConfig.PRODUCT_SERVICE_URLS.isEmpty()) {
-                throw new RuntimeException("No available product services!");
+                throw new RuntimeException("没有可用的产品服务!");
             }
         }
         return RestTemplateConfig.getNextProductServiceUrl();
     }
+    
 }

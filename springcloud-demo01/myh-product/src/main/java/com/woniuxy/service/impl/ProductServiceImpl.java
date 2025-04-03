@@ -42,13 +42,13 @@ public class ProductServiceImpl implements ProductService {
         
         // 判断库存是否足够
         if (product.getStock() < num) {
-            throw new RuntimeException("库存不足");
+            throw new RuntimeException("库存不足"); // 商品不存在时抛出异常
         }
         
         // 扣减库存
-        product.setStock(product.getStock() - num);
+        product.setStock(product.getStock() - num); // 库存不足时抛出异常
         
         // 保存更新
-        return productRepository.save(product);
+        return productRepository.save(product); // 持久化更新后的商品对象
     }
 } 

@@ -16,8 +16,8 @@ import java.util.stream.Collectors;
 @RequestMapping("/product")
 public class ProductController {
     
-    @Value("${server.port}")
-    private String serverPort;
+    @Value("${server.port}") 
+    private String serverPort; // 使用@Value注解注入配置文件中的server.port值
     
     @Autowired
     private ProductService productService;
@@ -29,10 +29,11 @@ public class ProductController {
     @GetMapping("/list")
     public List<Product> findAllProducts() {
         List<Product> products = productService.findAllProducts();
-        // 为每个产品添加当前服务端口信息
+        // 为每个产品添加当前服务端口信息，用于验证负载均衡效果
         return products.stream().peek(product -> {
+            // 将端口信息添加到产品名称中，这样客户端可以直观看到是哪个端口提供的服务
             product.setName(product.getName() + " (from port: " + serverPort + ")");
-        }).collect(Collectors.toList());
+        }).collect(Collectors.toList()); // 使用Stream API修改返回结果
     }
     
     /**

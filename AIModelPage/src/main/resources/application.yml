@@ -1,0 +1,73 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /ai-chat
+
+spring:
+  # 禁用数据库自动配置
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.jdbc.JdbcRepositoriesAutoConfiguration
+  # 数据库配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/ai_chat?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: Qiu@12345678
+  
+  # 模板引擎配置
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+    encoding: UTF-8
+    mode: HTML
+    servlet:
+      content-type: text/html
+  
+  # 会话配置
+  session:
+    store-type: none
+    timeout: 1800
+  
+  # 开发工具配置
+  devtools:
+    restart:
+      enabled: true
+      additional-paths: src/main/java
+      exclude: static/**,public/**
+  
+  # JSON序列化配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    serialization:
+      indent-output: true
+
+# 日志配置
+logging:
+  level:
+    root: info
+    com.aimodel.chat: debug
+  file:
+    name: logs/ai-chat.log
+
+# AI模型配置
+ai:
+  model:
+    # Deepseek模型配置（官方API）
+    deepseek:
+      r1:
+        url: https://api.deepseek.com/v1/chat/completions
+        model-name: deepseek-reasoner
+        api-key: sk-e88a5155c49b4e0e99bd7bab37cd95f0
+      v3:
+        url: https://api.deepseek.com/v1/chat/completions
+        model-name: deepseek-chat
+        api-key: sk-e88a5155c49b4e0e99bd7bab37cd95f0
+    # Claude模型配置
+    claude:
+      url: https://api.anthropic.com/v1/messages
+      api-key: your-claude-api-key
+      model-name: claude-3-sonnet-20240229

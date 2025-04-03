@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>AI聊天界面</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- 添加marked.js用于Markdown解析 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* 全局样式重置和基础字体设置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+        
+        /* 页面主体布局设置 */
+        body {
+            display: flex;
+            height: 100vh;
+        }
+        
+        /* 左侧会话列表样式 */
+        .sidebar {
+            min-width: 230px;
+            border-right: 1px solid #e0e0e0;
+            background-color: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* 侧边栏头部样式 */
+        .sidebar-header {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: bold;
+            text-align: center;
+            background-color: #f0f0f0;
+        }
+        
+        /* 侧边栏菜单项样式 */
+        .sidebar-menu li {
+            padding: 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #e9e9e9;
+        }
+        /* 当前选中的菜单项样式 */
+        .sidebar-menu li.active {
+            background-color: #e6e6e6;
+        }
+        
+        /* 右侧聊天区域容器样式 */
+        .chat-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background-color: #f0f0f0;
+        }
+        
+        /* 模型选择区域 */
+        .model-selector {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 10px 20px;
+            background-color: #fff;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 10;
+        }
+        
+        .model-selector select {
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #fff;
+            font-size: 14px;
+            min-width: 200px;
+        }
+                
+        /* 聊天消息列表区域样式 */
+        .chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-top: 60px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* 单条消息样式 */
+        .message {
+            margin-bottom: 16px; /* 缩小间距 */
+            max-width: 85%;
+            display: flex;
+            align-items: flex-start; /* 顶部对齐 */
+        }
+        
+        /* 用户消息样式 */
+        .message-user {
+            margin-left: auto;
+            justify-content:flex-end;
+        }
+        
+        /* 聊天头像样式 */
+        .avatar {
+            width: 36px; /* 缩小头像 */
+            height: 36px;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            margin: 0px 8px; /* 减小边距 */
+            flex-shrink: 0; /* 防止缩小 */
+            font-size: 14px; /* 减小头像内字体 */
+        }
+        
+        /* AI头像样式 */
+        .message-ai .avatar {
+            background-color: #5b6be5;
+        }
+        
+        /* 消息内容容器样式 */
+        .message-content {
+            background-color: #fff;
+            padding: 8px 12px; /* 减小内边距 */
+            border: 1px solid #e0e0e0;
+            border-radius: 16px; /* 增大圆角 */
+            position: relative;
+            width: auto; /* 改为自适应内容宽度 */
+            min-width: 50px; /* 设置最小宽度 */
+            max-width: 100%; /* 最大不超过容器 */
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            display: inline-block; /* 使内容区域适应文本长度 */
+        }
+        
+        /* 用户消息气泡样式 */
+        .message-user .message-content {
+            background-color: #dcf8c6; /* 用户消息背景色 */
+            border-color: #c7e9b0;
+        }
+        
+        /* 消息头部样式 */
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 3px; /* 减小空间 */
+            font-size: 11px; /* 减小字体 */
+            color: #888;
+        }
+        
+        /* 消息文本样式 */
+        .message-text {
+            line-height: 1.5; /* 减小行高 */
+            font-size: 15px; /* 适中字体大小 */
+        }
+        
+        /* Markdown渲染样式 */
+        .message-text strong {
+            font-weight: bold;
+        }
+        
+        .message-text em {
+            font-style: italic;
+        }
+        
+        .message-text a {
+            color: #0066cc;
+            text-decoration: underline;
+        }
+        
+        .message-text code {
+            background-color: #f8f8f8;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        
+        .message-text pre {
+            background-color: #f8f8f8;
+            padding: 8px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+        
+        /* 增强Markdown标题样式 */
+        .message-text h1 {
+            font-size: 1.8em;
+            margin: 0.8em 0 0.4em 0;
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 0.2em;
+        }
+        
+        .message-text h2 {
+            font-size: 1.5em;
+            margin: 0.8em 0 0.4em 0;
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 0.2em;
+        }
+        
+        .message-text h3 {
+            font-size: 1.3em;
+            margin: 0.6em 0 0.3em 0;
+        }
+        
+        .message-text h4 {
+            font-size: 1.1em;
+            margin: 0.5em 0 0.2em 0;
+        }
+        
+        /* 列表样式调整 */
+        .message-text ol, 
+        .message-text ul {
+            padding-left: 25px;
+            margin: 5px 0;
+        }
+        
+        .message-text li {
+            margin-bottom: 5px;
+        }
+        
+        /* 水平线样式 */
+        .message-text hr {
+            border: none;
+            border-top: 1px solid #e0e0e0;
+            margin: 10px 0;
+        }
+        
+        /* 消息底部样式 */
+        .message-footer {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #888;
+        }
+        
+        /* 底部输入区域容器样式 */
+        .chat-input-container {
+            border-top: 1px solid #e0e0e0;
+            padding: 10px; /* 减小内边距 */
+            background-color: #fff;
+        }
+        
+        /* 输入框外层容器样式 */
+        .chat-input-wrapper {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 3px;
+            position: relative; /* 确保定位正确 */
+        }
+        
+        /* 输入框样式 */
+        .chat-input {
+            width: 100%;
+            min-height: 60px;
+            height: auto;
+            max-height: 200px;
+            border: none;
+            outline: none;
+            resize: none;
+            padding: 5px;
+            font-size: 18px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+        
+        /* 工具栏样式 */
+        .chat-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between; /* 两端对齐 */
+            padding: 5px 0;
+            border-top: 1px solid #eee;
+        }
+        
+        /* 工具栏左侧按钮容器 */
+        .toolbar-left {
+            display: flex;
+        }
+        
+        /* 工具栏按钮样式 */
+        .toolbar-button {
+            margin-right: 15px;
+            color: #666;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 22px; /* 减小按钮大小 */
+            padding: 3px;
+            line-height: 1;
+        }
+        
+        /* 发送按钮样式 */
+        .send-button {
+            background-color: #4dafd91f;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            border-radius: 18px; /* 圆角发送按钮 */
+            font-size: 18px; /* 适中字体大小 */
+            padding: 5px 15px;
+            margin-right: 5px;
+            transition: background-color 0.2s; /* 平滑过渡效果 */
+        }
+        
+        /* 发送按钮悬停效果 */
+        .send-button:hover {
+            background-color: #4dafd970;
+        }
+        
+        /* 嵌套列表项缩进优化 */
+        .message-text ol ol, 
+        .message-text ul ul,
+        .message-text ol ul,
+        .message-text ul ol {
+            padding-left: 15px;
+        }
+        
+        /* 加强移动设备响应式 */
+        @media (max-width: 768px) {
+            .message {
+                max-width: 95%;
+            }
+            
+            .sidebar {
+                min-width: 180px;
+            }
+            
+            .chat-input {
+                font-size: 16px;
+            }
+        }
+        
+        /* 模型选择器样式 */
+        .model-dropdown {
+            position: absolute;
+            bottom: 100%;
+            left: 20px;
+            width: 220px; /* 减小宽度 */
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+            z-index: 100;
+            overflow: hidden;
+            display: none;
+            margin-bottom: 10px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .model-dropdown.active {
+            display: block;
+        }
+        
+        .model-group {
+            padding: 0;
+        }
+        
+        .model-group-title {
+            padding: 6px 12px; /* 减小内边距 */
+            font-size: 12px;
+            font-weight: bold;
+            color: #666;
+            background-color: #f5f5f5;
+        }
+        
+        .model-option {
+            padding: 8px 12px; /* 减小内边距 */
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .model-option:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .model-option.selected {
+            background-color: #e6f7ff;
+        }
+        
+        .model-icon {
+            width: 22px; /* 减小图标尺寸 */
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 8px;
+            color: white;
+            font-size: 12px;
+            flex-shrink: 0;
+            font-weight: bold; /* 加粗图标文字 */
+        }
+        
+        .model-icon.deepseek {
+            background-color: #6b8afd; /* 蓝色 */
+        }
+        
+        .model-icon.anthropic {
+            background-color: #f0735a; /* 橙红色 */
+        }
+        
+        .model-name {
+            flex: 1;
+            font-size: 13px; /* 减小字体 */
+        }
+        
+        .model-badge {
+            display: inline-block;
+            margin-left: 8px;
+            font-size: 11px;
+            color: #888;
+        }
+        
+        /* 特殊图标 */
+        .model-icon .star {
+            color: yellow;
+            font-size: 12px;
+        }
+        
+        /* 模型选择按钮 */
+        .toolbar-button.model-select {
+            position: relative;
+            display: flex;
+            align-items: center;
+            color: #568af2; /* 使用蓝色强调 */
+            font-size: 16px; /* 调整大小 */
+        }
+        
+        /* 添加下拉箭头 */
+        .model-select-arrow {
+            display: inline-block;
+            margin-left: 5px;
+            width: 0;
+            height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 5px solid #568af2;
+            transition: transform 0.2s;
+        }
+        
+        /* 按钮激活时箭头朝上 */
+        .toolbar-button.model-select.active .model-select-arrow {
+            transform: rotate(180deg);
+        }
+        
+        /* 底部工具栏高亮效果 */
+        .toolbar-button.active {
+            color: #5b6be5;
+            background-color: rgba(91, 107, 229, 0.1);
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 左侧会话列表 -->
+    <div class="sidebar">
+        <div class="sidebar-header">会话列表</div>
+        <ul class="sidebar-menu">
+            <li class="active">当前对话</li>
+            <li>AI搜索</li>
+            <li>帮我画图</li>
+        </ul>
+    </div>
+    <!-- 右侧聊天区域 -->
+    <div class="chat-container">
+        <!-- 聊天消息区域 - 已移除示例对话 -->
+        <div class="chat-messages">
+            <!-- 聊天消息将由JavaScript动态添加 -->
+        </div>
+        
+        <!-- 底部输入区域 -->
+        <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+                <textarea class="chat-input" placeholder="在这里输入消息..."></textarea>
+                <div class="chat-toolbar">
+                    <!-- 工具栏左侧按钮 -->
+                    <div class="toolbar-left">
+                        <!-- 模型选择按钮 -->
+                        <button class="toolbar-button model-select" id="modelSelectBtn">
+                            DeepSeek Chat
+                            <span class="model-select-arrow"></span>
+                        </button>
+                        
+                        <!-- 模型选择下拉菜单 -->
+                        <div class="model-dropdown" id="modelDropdown">
+                            <!-- DeepSeek模型 -->
+                            <div class="model-group">
+                                <div class="model-group-title">DEEPSEEK</div>
+                                <div class="model-option" data-model="deepseek-v3">
+                                    <div class="model-icon deepseek">DS</div>
+                                    <div class="model-name">DeepSeek Chat</div>
+                                </div>
+                                <div class="model-option" data-model="deepseek-r1">
+                                    <div class="model-icon deepseek">DS</div>
+                                    <div class="model-name">DeepSeek Reasoner <span class="star">★</span></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Anthropic模型 -->
+                            <div class="model-group">
+                                <div class="model-group-title">ANTHROPIC</div>
+                                <div class="model-option" data-model="claude-3-haiku">
+                                    <div class="model-icon anthropic">C3</div>
+                                    <div class="model-name">Claude 3 Haiku</div>
+                                </div>
+                                <div class="model-option" data-model="claude-3-opus">
+                                    <div class="model-icon anthropic">C3</div>
+                                    <div class="model-name">Claude 3 Opus</div>
+                                </div>
+                                <div class="model-option" data-model="claude-3-sonnet">
+                                    <div class="model-icon anthropic">C3</div>
+                                    <div class="model-name">Claude 3 Sonnet</div>
+                                </div>
+                                <div class="model-option" data-model="claude-3.5-sonnet">
+                                    <div class="model-icon anthropic">C3.5</div>
+                                    <div class="model-name">Claude 3.5 Sonnet</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button class="toolbar-button">📄</button>
+                        <button class="toolbar-button">🖼️</button>
+                        <button class="toolbar-button">🌐</button>
+                        <button class="toolbar-button">🎙️</button>
+                    </div>
+                    <!-- 发送按钮 -->
+                    <button class="send-button" id="sendMessage">发送</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        $(document).ready(function() {
+            const sendButton = $('#sendMessage');
+            const chatInput = $('.chat-input');
+            const chatMessages = $('.chat-messages');
+            const modelSelectBtn = $('#modelSelectBtn');
+            const modelDropdown = $('#modelDropdown');
+            const modelOptions = $('.model-option');
+            
+            let currentModel = "deepseek-v3"; // 默认模型
+            
+            // 标记默认选中的模型
+            $(`.model-option[data-model="${currentModel}"]`).addClass('selected');
+            updateModelButtonText(currentModel);
+            
+            // 配置marked.js选项
+            marked.setOptions({
+                breaks: true,       // 允许换行
+                gfm: true,          // 允许GitHub风格的Markdown
+                headerIds: false,   // 不添加header IDs，避免冲突
+                mangle: false,      // 不混淆标题ID
+                sanitize: false,    // 不进行HTML净化，允许HTML标签
+                smartLists: true,   // 优化列表输出
+                smartypants: true,  // 优化引号、破折号等
+                xhtml: false        // 不使用XHTML
+            });
+            
+            // 页面加载时显示欢迎消息
+            showWelcomeMessage(currentModel);
+            
+            // 模型选择按钮点击事件
+            modelSelectBtn.on('click', function(e) {
+                e.stopPropagation();
+                modelDropdown.toggleClass('active');
+                $(this).toggleClass('active');
+            });
+            
+            // 点击外部区域关闭下拉菜单
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('.model-select, .model-dropdown').length) {
+                    modelDropdown.removeClass('active');
+                    modelSelectBtn.removeClass('active');
+                }
+            });
+            
+            // 选择模型
+            modelOptions.on('click', function() {
+                const selectedModel = $(this).data('model');
+                
+                // 取消之前选中的模型
+                modelOptions.removeClass('selected');
+                
+                // 选中当前模型
+                $(this).addClass('selected');
+                
+                // 关闭下拉菜单
+                modelDropdown.removeClass('active');
+                modelSelectBtn.removeClass('active');
+                
+                // 如果选择了不同的模型
+                if (selectedModel !== currentModel) {
+                    currentModel = selectedModel;
+                    updateModelButtonText(currentModel);
+                    showModelSwitchMessage(currentModel);
+                }
+            });
+            
+            // 更新模型按钮文本
+            function updateModelButtonText(modelType) {
+                let buttonText = "选择模型";
+                
+                switch(modelType) {
+                    case 'deepseek-v3':
+                        buttonText = "DeepSeek Chat";
+                        break;
+                    case 'deepseek-r1':
+                        buttonText = "DeepSeek Reasoner";
+                        break;
+                    case 'claude-3-haiku':
+                        buttonText = "Claude 3 Haiku";
+                        break;
+                    case 'claude-3-opus':
+                        buttonText = "Claude 3 Opus";
+                        break;
+                    case 'claude-3-sonnet':
+                        buttonText = "Claude 3 Sonnet";
+                        break;
+                    case 'claude-3.5-sonnet':
+                        buttonText = "Claude 3.5 Sonnet";
+                        break;
+                }
+                
+                // 保留箭头
+                modelSelectBtn.html(buttonText + '<span class="model-select-arrow"></span>');
+            }
+            
+            // 发送消息
+            sendButton.on('click', function() {
+                const message = chatInput.val().trim();
+                if (message) {
+                    // 添加用户消息
+                    addUserMessage(message);
+                    
+                    // 清空输入框
+                    chatInput.val('');
+                    
+                    // 调用后端API发送消息
+                    sendMessageToServer(message, currentModel);
+                }
+            });
+            
+            // 监听回车键
+            chatInput.on('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendButton.click();
+                }
+            });
+            
+            // 显示欢迎消息
+            function showWelcomeMessage(modelType) {
+                let modelName, provider;
+                
+                switch(modelType) {
+                    case 'deepseek-r1':
+                        modelName = 'DeepSeek Reasoner';
+                        provider = 'Deepseek';
+                        break;
+                    case 'deepseek-v3':
+                        modelName = 'DeepSeek Chat';
+                        provider = 'Deepseek';
+                        break;
+                    case 'claude-3-haiku':
+                        modelName = 'Claude 3 Haiku';
+                        provider = 'Anthropic';
+                        break;
+                    case 'claude-3-opus':
+                        modelName = 'Claude 3 Opus';
+                        provider = 'Anthropic';
+                        break;
+                    case 'claude-3-sonnet':
+                        modelName = 'Claude 3 Sonnet';
+                        provider = 'Anthropic';
+                        break;
+                    case 'claude-3.5-sonnet':
+                        modelName = 'Claude 3.5 Sonnet';
+                        provider = 'Anthropic';
+                        break;
+                    default:
+                        modelName = 'AI模型';
+                        provider = 'API';
+                }
+                
+                // 欢迎消息
+                const welcomeMessage = {
+                    content: `你好！我是**${modelName}**。有什么我可以帮助你的吗？`,
+                    model: modelName,
+                    provider: provider,
+                    tokensIn: 0,
+                    tokensOut: 0
+                };
+                
+                // 添加欢迎消息
+                addAIMessage(welcomeMessage);
+            }
+            
+            // 显示模型切换消息
+            function showModelSwitchMessage(modelType) {
+                let modelName, provider;
+                
+                switch(modelType) {
+                    case 'deepseek-r1':
+                        modelName = 'DeepSeek Reasoner';
+                        provider = 'Deepseek';
+                        break;
+                    case 'deepseek-v3':
+                        modelName = 'DeepSeek Chat';
+                        provider = 'Deepseek';
+                        break;
+                    case 'claude-3-haiku':
+                        modelName = 'Claude 3 Haiku';
+                        provider = 'Anthropic';
+                        break;
+                    case 'claude-3-opus':
+                        modelName = 'Claude 3 Opus';
+                        provider = 'Anthropic';
+                        break;
+                    case 'claude-3-sonnet':
+                        modelName = 'Claude 3 Sonnet';
+                        provider = 'Anthropic';
+                        break;
+                    case 'claude-3.5-sonnet':
+                        modelName = 'Claude 3.5 Sonnet';
+                        provider = 'Anthropic';
+                        break;
+                    default:
+                        modelName = 'AI模型';
+                        provider = 'API';
+                }
+                
+                // 模型切换消息
+                const switchMessage = {
+                    content: `我已切换为**${modelName}**。我会继续为您提供服务。`,
+                    model: modelName,
+                    provider: provider,
+                    tokensIn: 0,
+                    tokensOut: 0
+                };
+                
+                // 添加模型切换消息
+                addAIMessage(switchMessage);
+            }
+            
+            // 添加用户消息到聊天区域
+            function addUserMessage(message) {
+                const messageElement = $(`
+                    <div class="message message-user">
+                        <div class="message-content">
+                            <div class="message-text">${message}</div>
+                        </div>
+                        <div class="avatar">用户</div>
+                    </div>
+                `);
+                chatMessages.append(messageElement);
+                scrollToBottom();
+            }
+            
+            // 添加AI消息到聊天区域（直接显示，不使用打字机效果）
+            function addAIMessage(response) {
+                // 获取当前时间
+                const now = new Date();
+                const timeString = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+                
+                // 创建消息元素
+                const messageElement = $(`
+                    <div class="message message-ai">
+                        <div class="avatar">AI</div>
+                        <div class="message-content">
+                            <div class="message-header">
+                                ${response.model || 'AI模型'} | ${response.provider || 'API'}
+                                <span style="margin-left: 10px;">${timeString}</span>
+                            </div>
+                            <div class="message-text">
+                                ${marked.parse(response.content)}
+                            </div>
+                            <div class="message-footer">
+                                Tokens: ${response.tokensIn || 0} ↑ ${response.tokensOut || 0} ↓
+                            </div>
+                        </div>
+                    </div>
+                `);
+                
+                chatMessages.append(messageElement);
+                scrollToBottom();
+            }
+            
+            // 发送消息到服务器
+            function sendMessageToServer(message, modelType) {
+                // 显示加载指示
+                showLoadingMessage();
+                
+                // 创建流式响应对象
+                const eventSource = new EventSource(`/ai-chat/api/chat/stream?message=${encodeURIComponent(message)}&modelType=${encodeURIComponent(modelType)}`);
+                
+                // 创建AI消息元素，准备接收流式内容
+                const now = new Date();
+                const timeString = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+                
+                // 移除加载消息
+                removeLoadingMessage();
+                
+                // 准备模型名称和提供商
+                let modelName, provider;
+                switch(modelType) {
+                    case 'deepseek-r1':
+                        modelName = 'DeepSeek Reasoner';
+                        provider = 'Deepseek';
+                        break;
+                    case 'deepseek-v3':
+                        modelName = 'DeepSeek Chat';
+                        provider = 'Deepseek';
+                        break;
+                    case 'claude-3-haiku':
+                        modelName = 'Claude 3 Haiku';
+                        provider = 'Anthropic';
+                        break;
+                    case 'claude-3-opus':
+                        modelName = 'Claude 3 Opus';
+                        provider = 'Anthropic';
+                        break;
+                    case 'claude-3-sonnet':
+                        modelName = 'Claude 3 Sonnet';
+                        provider = 'Anthropic';
+                        break;
+                    case 'claude-3.5-sonnet':
+                        modelName = 'Claude 3.5 Sonnet';
+                        provider = 'Anthropic';
+                        break;
+                    default:
+                        modelName = 'AI模型';
+                        provider = 'API';
+                }
+                
+                // 创建消息元素
+                const messageElement = $(`
+                    <div class="message message-ai">
+                        <div class="avatar">AI</div>
+                        <div class="message-content">
+                            <div class="message-header">
+                                ${modelName} | ${provider}
+                                <span style="margin-left: 10px;">${timeString}</span>
+                            </div>
+                            <div class="message-text"></div>
+                            <div class="message-footer">
+                                Tokens: 0 ↑ 0 ↓
+                            </div>
+                        </div>
+                    </div>
+                `);
+                
+                chatMessages.append(messageElement);
+                scrollToBottom();
+                
+                let fullContent = '';
+                let tokensIn = 0;
+                let tokensOut = 0;
+                
+                // 监听内容事件
+                eventSource.addEventListener('content', function(event) {
+                    const content = event.data;
+                    fullContent += content;
+                    
+                    // 更新消息内容 - 不进行增量渲染，而是每次渲染完整内容以确保Markdown正确解析
+                    try {
+                        messageElement.find('.message-text').html(marked.parse(fullContent));
+                    } catch (e) {
+                        // 如果解析出错，直接显示文本内容
+                        messageElement.find('.message-text').text(fullContent);
+                    }
+                    
+                    // 更新tokens计数
+                    tokensOut++;
+                    messageElement.find('.message-footer').html(`Tokens: ${tokensIn} ↑ ${tokensOut} ↓`);
+                    
+                    scrollToBottom();
+                });
+                
+                // 监听完成事件
+                eventSource.addEventListener('complete', function(event) {
+                    const data = JSON.parse(event.data);
+                    
+                    // 更新最终的tokens计数
+                    if (data.tokensIn) tokensIn = data.tokensIn;
+                    if (data.tokensOut) tokensOut = data.tokensOut;
+                    
+                    // 确保最终内容完全渲染
+                    if (data.content) {
+                        fullContent = data.content;
+                    }
+                    
+                    // 最终再次完整渲染Markdown，确保所有标记都正确解析
+                    try {
+                        messageElement.find('.message-text').html(marked.parse(fullContent));
+                    } catch (e) {
+                        // 如果解析出错，直接显示文本内容
+                        messageElement.find('.message-text').text(fullContent);
+                    }
+                    
+                    messageElement.find('.message-footer').html(`Tokens: ${tokensIn} ↑ ${tokensOut} ↓`);
+                    
+                    // 关闭事件源
+                    eventSource.close();
+                });
+                
+                // 监听错误事件
+                eventSource.addEventListener('error', function(event) {
+                    // 处理错误消息
+                    messageElement.find('.message-text').html(`发生错误：${event.data || '连接中断'}`);
+                    messageElement.find('.message-header').html('System | Error');
+                    
+                    // 关闭事件源
+                    eventSource.close();
+                });
+                
+                // 一般错误处理
+                eventSource.onerror = function(error) {
+                    // 移除加载消息（如果还存在）
+                    removeLoadingMessage();
+                    
+                    // 显示错误消息
+                    if (!messageElement.find('.message-text').text()) {
+                        messageElement.find('.message-text').html('连接错误，请稍后重试');
+                        messageElement.find('.message-header').html('System | Error');
+                    }
+                    
+                    // 关闭事件源
+                    eventSource.close();
+                };
+            }
+            
+            // 显示加载指示
+            function showLoadingMessage() {
+                const loadingElement = $(`
+                    <div class="message message-ai loading">
+                        <div class="avatar">AI</div>
+                        <div class="message-content">
+                            <div class="message-text">思考中...</div>
+                        </div>
+                    </div>
+                `);
+                chatMessages.append(loadingElement);
+                scrollToBottom();
+            }
+            
+            // 移除加载指示
+            function removeLoadingMessage() {
+                $('.loading').remove();
+            }
+            
+            // 滚动到底部
+            function scrollToBottom() {
+                chatMessages.scrollTop(chatMessages[0].scrollHeight);
+            }
+        });
+    </script>
+</body>
+</html>
