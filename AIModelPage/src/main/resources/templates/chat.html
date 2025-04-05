@@ -6,6 +6,9 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- 添加marked.js用于Markdown解析 -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- 添加highlight.js用于代码高亮 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
     <style>
         /* 全局样式重置和基础字体设置 */
         * {
@@ -19,15 +22,18 @@
         body {
             display: flex;
             height: 100vh;
+            background-color: #f0f2f5;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
         }
         
         /* 左侧会话列表样式 */
         .sidebar {
             min-width: 230px;
             border-right: 1px solid #e0e0e0;
-            background-color: #f9f9f9;
+            background-color: #fff;
             display: flex;
             flex-direction: column;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
         
         /* 侧边栏头部样式 */
@@ -36,18 +42,33 @@
             border-bottom: 1px solid #e0e0e0;
             font-weight: bold;
             text-align: center;
-            background-color: #f0f0f0;
+            background-color: #fcfcfc;
+            color: #333;
         }
         
         /* 侧边栏菜单项样式 */
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+        }
+        
         .sidebar-menu li {
             padding: 15px;
             cursor: pointer;
-            border-bottom: 1px solid #e9e9e9;
+            border-bottom: 1px solid #f0f0f0;
+            transition: all 0.2s ease;
+            color: #333;
         }
+        
+        .sidebar-menu li:hover {
+            background-color: #f9f9f9;
+        }
+        
         /* 当前选中的菜单项样式 */
         .sidebar-menu li.active {
-            background-color: #e6e6e6;
+            background-color: #f0f7ff;
+            border-left: 3px solid #1890ff;
+            font-weight: 500;
         }
         
         /* 右侧聊天区域容器样式 */
@@ -56,7 +77,7 @@
             display: flex;
             flex-direction: column;
             position: relative;
-            background-color: #f0f0f0;
+            background-color: #f7f7f7;
         }
         
         /* 模型选择区域 */
@@ -109,28 +130,34 @@
         
         /* 聊天头像样式 */
         .avatar {
-            width: 36px; /* 缩小头像 */
-            height: 36px;
-            border-radius: 5px;
-            background-color: #4CAF50;
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            margin: 0px 8px; /* 减小边距 */
-            flex-shrink: 0; /* 防止缩小 */
-            font-size: 14px; /* 减小头像内字体 */
+            margin: 0px 8px;
+            flex-shrink: 0;
+            font-size: 15px;
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
         /* AI头像样式 */
         .message-ai .avatar {
-            background-color: #5b6be5;
+            background: linear-gradient(135deg, #6e8efb, #5b6be5);
+        }
+        
+        /* 用户头像样式 */
+        .message-user .avatar {
+            background: linear-gradient(135deg, #43c6ac, #4dafd9);
         }
         
         /* 消息内容容器样式 */
         .message-content {
             background-color: #fff;
-            padding: 8px 12px; /* 减小内边距 */
+            padding: 12px 16px;
             border: 1px solid #e0e0e0;
             border-radius: 16px; /* 增大圆角 */
             position: relative;
@@ -140,11 +167,17 @@
             word-wrap: break-word;
             overflow-wrap: break-word;
             display: inline-block; /* 使内容区域适应文本长度 */
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            transition: box-shadow 0.2s ease;
+        }
+        
+        .message-content:hover {
+            box-shadow: 0 3px 8px rgba(0,0,0,0.1);
         }
         
         /* 用户消息气泡样式 */
         .message-user .message-content {
-            background-color: #dcf8c6; /* 用户消息背景色 */
+            background: linear-gradient(135deg, #dcf8c6, #c7f3af);
             border-color: #c7e9b0;
         }
         
@@ -159,19 +192,127 @@
         
         /* 消息文本样式 */
         .message-text {
-            line-height: 1.5; /* 减小行高 */
-            font-size: 15px; /* 适中字体大小 */
+            line-height: 1.5;
+            font-size: 15px;
         }
         
-        /* Markdown渲染样式 */
+        .message-text p {
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+        
+        /* 标题样式优化 */
+        .message-text h1, 
+        .message-text h2, 
+        .message-text h3,
+        .message-text h4,
+        .message-text h5,
+        .message-text h6 {
+            font-weight: 600;
+            margin-top: 20px;
+            margin-bottom: 12px;
+            line-height: 1.3;
+            color: #24292e;
+        }
+        
+        .message-text h1 {
+            font-size: 1.8em;
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 0.3em;
+        }
+        
+        .message-text h2 {
+            font-size: 1.5em;
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 0.3em;
+        }
+        
+        .message-text h3 {
+            font-size: 1.3em;
+        }
+        
+        .message-text h4 {
+            font-size: 1.1em;
+        }
+        
+        .message-text h5 {
+            font-size: 1em;
+        }
+        
+        .message-text h6 {
+            font-size: 0.9em;
+            color: #6a737d;
+        }
+        
+        /* 确保标题前有足够的间距 */
+        .message-text *:first-child {
+            margin-top: 0;
+        }
+        
+        .message-text h1 + p,
+        .message-text h2 + p,
+        .message-text h3 + p,
+        .message-text h4 + p,
+        .message-text h5 + p,
+        .message-text h6 + p {
+            margin-top: 8px;
+        }
+        
+        /* 优化列表样式 */
+        .message-text ul, 
+        .message-text ol {
+            padding-left: 25px;
+            margin: 10px 0 12px 0;
+        }
+        
+        .message-text ul li,
+        .message-text ol li {
+            margin-bottom: 6px;
+        }
+        
+        /* 改进引用块样式 */
+        .message-text blockquote {
+            padding: 10px 15px;
+            margin: 12px 0;
+            color: #6a737d;
+            border-left: 4px solid #dfe2e5;
+            background-color: #f8f9fa;
+            border-radius: 3px;
+        }
+        
+        .message-text blockquote p {
+            margin-bottom: 8px;
+        }
+        
+        .message-text blockquote p:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* 加粗和强调样式 */
         .message-text strong {
-            font-weight: bold;
+            font-weight: 600;
         }
         
         .message-text em {
             font-style: italic;
         }
         
+        /* 修复可能的多余空白行问题 */
+        .message-text br + br {
+            display: block;
+            content: "";
+            margin-top: 12px;
+        }
+        
+        /* 改善AI消息内容容器样式 */
+        .message-ai .message-content {
+            background-color: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 16px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* 增强Markdown渲染样式 */
         .message-text a {
             color: #0066cc;
             text-decoration: underline;
@@ -181,82 +322,157 @@
             background-color: #f8f8f8;
             padding: 2px 4px;
             border-radius: 3px;
-            font-family: monospace;
+            font-family: "Courier New", Consolas, Monaco, monospace;
+            font-size: 0.9em;
+            color: #e83e8c;
         }
         
         .message-text pre {
             background-color: #f8f8f8;
-            padding: 8px;
-            border-radius: 5px;
+            padding: 12px;
+            border-radius: 6px;
             overflow-x: auto;
-            margin: 8px 0;
+            margin: 12px 0;
+            border: 1px solid #e6e6e6;
+            position: relative;
         }
         
-        /* 增强Markdown标题样式 */
-        .message-text h1 {
-            font-size: 1.8em;
-            margin: 0.8em 0 0.4em 0;
-            border-bottom: 1px solid #eaecef;
-            padding-bottom: 0.2em;
+        .message-text pre code {
+            background-color: transparent;
+            padding: 0;
+            color: #333;
+            font-size: 0.9em;
+            line-height: 1.5;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            display: block;
+            white-space: pre;
         }
         
-        .message-text h2 {
-            font-size: 1.5em;
-            margin: 0.8em 0 0.4em 0;
-            border-bottom: 1px solid #eaecef;
-            padding-bottom: 0.2em;
+        /* 添加代码块语言标识 */
+        .message-text pre::before {
+            content: attr(data-language);
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 2px 8px;
+            font-size: 12px;
+            color: #666;
+            background-color: #f1f1f1;
+            border-bottom-left-radius: 4px;
+            border-top-right-radius: 5px;
+            opacity: 0.8;
         }
         
-        .message-text h3 {
-            font-size: 1.3em;
-            margin: 0.6em 0 0.3em 0;
+        /* 改进代码块语法高亮样式 */
+        .hljs {
+            display: block;
+            overflow-x: auto;
+            padding: 1em;
+            background: #f8f8f8;
+            color: #333;
+            border-radius: 3px;
         }
         
-        .message-text h4 {
-            font-size: 1.1em;
-            margin: 0.5em 0 0.2em 0;
+        /* 表格样式 */
+        .message-text table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 10px 0;
+            overflow-x: auto;
+            display: block;
         }
         
-        /* 列表样式调整 */
-        .message-text ol, 
-        .message-text ul {
-            padding-left: 25px;
-            margin: 5px 0;
+        .message-text th, 
+        .message-text td {
+            border: 1px solid #dfe2e5;
+            padding: 6px 13px;
+            text-align: left;
         }
         
-        .message-text li {
-            margin-bottom: 5px;
+        .message-text th {
+            background-color: #f6f8fa;
+            font-weight: 600;
+        }
+        
+        .message-text tr:nth-child(2n) {
+            background-color: #f6f8fa;
         }
         
         /* 水平线样式 */
         .message-text hr {
             border: none;
             border-top: 1px solid #e0e0e0;
-            margin: 10px 0;
+            margin: 16px 0;
         }
         
-        /* 消息底部样式 */
-        .message-footer {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 5px;
+        /* 思考过程容器样式优化 */
+        .reasoning-container {
+            margin-top: 10px;
+            padding: 12px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #eaecef;
+            margin-bottom: 10px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .reasoning-container:hover {
+            background-color: #f4f6f8;
+        }
+        
+        .reasoning-header {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #5b6be5;
+            font-size: 0.9em;
+        }
+        
+        .reasoning-text {
+            font-size: 0.9em;
+            color: #555;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        /* 改进显示思考过程按钮样式 */
+        .toggle-reasoning {
+            background-color: #f0f2ff;
+            border: 1px solid #d0d4ff;
+            border-radius: 4px;
+            padding: 2px 6px;
             font-size: 12px;
-            color: #888;
+            cursor: pointer;
+            color: #5b6be5;
+            transition: all 0.2s;
+            margin-left: 10px;
+        }
+        
+        .toggle-reasoning:hover {
+            background-color: #e0e4ff;
         }
         
         /* 底部输入区域容器样式 */
         .chat-input-container {
             border-top: 1px solid #e0e0e0;
-            padding: 10px; /* 减小内边距 */
+            padding: 12px 15px;
             background-color: #fff;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.03);
         }
         
         /* 输入框外层容器样式 */
         .chat-input-wrapper {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 3px;
-            position: relative; /* 确保定位正确 */
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 5px;
+            position: relative;
+            transition: all 0.2s ease;
+            background-color: #fff;
+        }
+        
+        .chat-input-wrapper:focus-within {
+            border-color: #1890ff;
+            box-shadow: 0 0 0 2px rgba(24,144,255,0.1);
         }
         
         /* 输入框样式 */
@@ -334,10 +550,37 @@
             
             .sidebar {
                 min-width: 180px;
+                width: 40%;
             }
             
             .chat-input {
                 font-size: 16px;
+            }
+            
+            .message-content {
+                max-width: 90%;
+            }
+            
+            .reasoning-container {
+                padding: 8px;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .sidebar {
+                min-width: 0;
+                width: 80px;
+            }
+            
+            .sidebar-header,
+            .sidebar-menu li {
+                padding: 10px 5px;
+                text-align: center;
+                font-size: 12px;
+            }
+            
+            .message-header {
+                flex-wrap: wrap;
             }
         }
         
@@ -461,6 +704,54 @@
             background-color: rgba(91, 107, 229, 0.1);
             border-radius: 5px;
         }
+        
+        .thinking-phase {
+            color: #5b6be5;
+            font-weight: bold;
+        }
+        
+        .answer-phase {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        /* 消息底部样式 */
+        .message-footer {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #888;
+        }
+        
+        /* 加载消息样式优化 */
+        .loading-message {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            margin-bottom: 15px;
+            color: #666;
+            background-color: rgba(255,255,255,0.8);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .loading-indicator {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ddd;
+            border-top: 2px solid #5b6be5;
+            border-radius: 50%;
+            margin-right: 10px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -566,8 +857,44 @@
                 sanitize: false,    // 不进行HTML净化，允许HTML标签
                 smartLists: true,   // 优化列表输出
                 smartypants: true,  // 优化引号、破折号等
-                xhtml: false        // 不使用XHTML
+                xhtml: false,       // 不使用XHTML
+                highlight: function(code, lang) {
+                    // 添加代码高亮功能
+                    if (lang && hljs.getLanguage(lang)) {
+                        try {
+                            return hljs.highlight(code, { language: lang }).value;
+                        } catch (e) {}
+                    }
+                    
+                    try {
+                        return hljs.highlightAuto(code).value;
+                    } catch (e) {}
+                    
+                    return code;
+                }
             });
+            
+            // 预处理markdown文本，修复标题语法问题
+            function preprocessMarkdown(text) {
+                if (!text) return '';
+                
+                // 修复不带空格的标题格式 (###标题 -> ### 标题)
+                text = text.replace(/###(\d+\.|[^\s#])/g, '### $1');
+                
+                // 为没有添加空格的标题添加空格
+                text = text.replace(/(#{1,6})([^#\s])/g, '$1 $2');
+                
+                // 确保标题前有换行（除非是文本开头）
+                text = text.replace(/([^\n])(\n?)(#{1,6}\s)/g, '$1\n\n$3');
+                
+                // 替换连续星号为加粗文本：**文本** 确保正确渲染
+                text = text.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+                
+                // 确保列表项有正确的换行和格式
+                text = text.replace(/([^\n])\n-\s/g, '$1\n\n- ');
+                
+                return text;
+            }
             
             // 页面加载时显示欢迎消息
             showWelcomeMessage(currentModel);
@@ -769,11 +1096,31 @@
                 scrollToBottom();
             }
             
+            // 给代码块添加语言标识的函数
+            function addLanguageLabels() {
+                $('pre code').each(function() {
+                    const $code = $(this);
+                    const $pre = $code.parent('pre');
+                    
+                    // 获取语言类
+                    const langClass = $code.attr('class');
+                    if (langClass) {
+                        const langMatch = langClass.match(/language-(\w+)/);
+                        if (langMatch && langMatch[1]) {
+                            $pre.attr('data-language', langMatch[1]);
+                        }
+                    }
+                });
+            }
+            
             // 添加AI消息到聊天区域（直接显示，不使用打字机效果）
             function addAIMessage(response) {
                 // 获取当前时间
                 const now = new Date();
                 const timeString = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+                
+                // 预处理markdown
+                const processedContent = preprocessMarkdown(response.content || '');
                 
                 // 创建消息元素
                 const messageElement = $(`
@@ -785,7 +1132,7 @@
                                 <span style="margin-left: 10px;">${timeString}</span>
                             </div>
                             <div class="message-text">
-                                ${marked.parse(response.content)}
+                                ${marked.parse(processedContent)}
                             </div>
                             <div class="message-footer">
                                 Tokens: ${response.tokensIn || 0} ↑ ${response.tokensOut || 0} ↓
@@ -795,6 +1142,15 @@
                 `);
                 
                 chatMessages.append(messageElement);
+                
+                // 应用代码高亮
+                messageElement.find('pre code').each(function(i, block) {
+                    hljs.highlightElement(block);
+                });
+                
+                // 添加语言标识
+                addLanguageLabels();
+                
                 scrollToBottom();
             }
             
@@ -815,6 +1171,9 @@
                 
                 // 准备模型名称和提供商
                 let modelName, provider;
+                // 判断是否为Reasoner模型
+                const isReasonerModel = modelType === 'deepseek-r1';
+                
                 switch(modelType) {
                     case 'deepseek-r1':
                         modelName = 'DeepSeek Reasoner';
@@ -853,7 +1212,10 @@
                             <div class="message-header">
                                 ${modelName} | ${provider}
                                 <span style="margin-left: 10px;">${timeString}</span>
+                                ${isReasonerModel ? '<button class="toggle-reasoning">显示思考过程</button>' : ''}
+                                ${isReasonerModel ? '<span class="phase-indicator thinking-phase" style="margin-left: 10px;">思考中...</span>' : ''}
                             </div>
+                            ${isReasonerModel ? '<div class="reasoning-container" style="display: none;"><div class="reasoning-header">思考过程:</div><div class="reasoning-text"></div></div>' : ''}
                             <div class="message-text"></div>
                             <div class="message-footer">
                                 Tokens: 0 ↑ 0 ↓
@@ -862,29 +1224,101 @@
                     </div>
                 `);
                 
+                // 添加思维链切换按钮事件
+                if (isReasonerModel) {
+                    messageElement.find('.toggle-reasoning').on('click', function() {
+                        const $this = $(this);
+                        const reasoningContainer = messageElement.find('.reasoning-container');
+                        
+                        if (reasoningContainer.is(':visible')) {
+                            $this.text('显示思考过程');
+                            reasoningContainer.hide();
+                        } else {
+                            $this.text('隐藏思考过程');
+                            reasoningContainer.show();
+                        }
+                    });
+                }
+                
                 chatMessages.append(messageElement);
                 scrollToBottom();
                 
                 let fullContent = '';
+                let reasoningContent = '';
                 let tokensIn = 0;
                 let tokensOut = 0;
+                
+                // 监听思维链事件
+                eventSource.addEventListener('reasoning', function(event) {
+                    const content = event.data;
+                    reasoningContent += content;
+                    
+                    // 更新思维链内容
+                    try {
+                        // 预处理markdown
+                        const processedReasoning = preprocessMarkdown(reasoningContent);
+                        const renderedReasoning = marked.parse(processedReasoning);
+                        messageElement.find('.reasoning-text').html(renderedReasoning);
+                        
+                        // 应用代码高亮
+                        messageElement.find('.reasoning-text pre code').each(function(i, block) {
+                            hljs.highlightElement(block);
+                        });
+                    } catch (e) {
+                        // 如果解析出错，直接显示文本内容
+                        messageElement.find('.reasoning-text').text(reasoningContent);
+                        console.error('思考过程解析错误:', e);
+                    }
+                    
+                    // 更新tokens计数
+                    tokensOut++;
+                    messageElement.find('.message-footer').html(`Tokens: ${tokensIn} ↑ ${tokensOut} ↓`);
+                    
+                    // 添加语言标识
+                    addLanguageLabels();
+                    
+                    scrollToBottom();
+                });
+                
+                // 监听阶段变化事件
+                eventSource.addEventListener('phaseChange', function(event) {
+                    if (event.data === 'content') {
+                        // 从思考阶段转到回答阶段
+                        messageElement.find('.phase-indicator')
+                            .removeClass('thinking-phase')
+                            .addClass('answer-phase')
+                            .text('正在回答...');
+                    }
+                });
                 
                 // 监听内容事件
                 eventSource.addEventListener('content', function(event) {
                     const content = event.data;
                     fullContent += content;
                     
-                    // 更新消息内容 - 不进行增量渲染，而是每次渲染完整内容以确保Markdown正确解析
+                    // 更新消息内容
                     try {
-                        messageElement.find('.message-text').html(marked.parse(fullContent));
+                        // 预处理markdown
+                        const processedMarkdown = preprocessMarkdown(fullContent);
+                        const renderedContent = marked.parse(processedMarkdown);
+                        messageElement.find('.message-text').html(renderedContent);
+                        
+                        // 应用代码高亮
+                        messageElement.find('pre code').each(function(i, block) {
+                            hljs.highlightElement(block);
+                        });
                     } catch (e) {
                         // 如果解析出错，直接显示文本内容
                         messageElement.find('.message-text').text(fullContent);
+                        console.error('Markdown解析错误:', e);
                     }
                     
                     // 更新tokens计数
                     tokensOut++;
                     messageElement.find('.message-footer').html(`Tokens: ${tokensIn} ↑ ${tokensOut} ↓`);
+                    
+                    // 添加语言标识
+                    addLanguageLabels();
                     
                     scrollToBottom();
                 });
@@ -892,23 +1326,63 @@
                 // 监听完成事件
                 eventSource.addEventListener('complete', function(event) {
                     const data = JSON.parse(event.data);
+                    console.log('[FRONTEND DEBUG] Received complete event data:', data);
                     
                     // 更新最终的tokens计数
                     if (data.tokensIn) tokensIn = data.tokensIn;
                     if (data.tokensOut) tokensOut = data.tokensOut;
                     
                     // 确保最终内容完全渲染
-                    if (data.content) {
+                    if (data.content && fullContent === '') {
                         fullContent = data.content;
+                        console.log('[FRONTEND DEBUG] Using server-provided content because local content was empty');
                     }
+                    
+                    // 添加渲染前的内容调试输出
+                    console.log('[FRONTEND DEBUG] Final content to render:', fullContent);
+                    
+                    if (data.reasoningContent) {
+                        reasoningContent = data.reasoningContent;
+                        
+                        // 最终渲染思维链内容
+                        try {
+                            // 预处理markdown
+                            const processedReasoning = preprocessMarkdown(reasoningContent);
+                            const renderedReasoning = marked.parse(processedReasoning);
+                            messageElement.find('.reasoning-text').html(renderedReasoning);
+                            
+                            // 应用代码高亮
+                            messageElement.find('.reasoning-text pre code').each(function(i, block) {
+                                hljs.highlightElement(block);
+                            });
+                        } catch (e) {
+                            messageElement.find('.reasoning-text').text(reasoningContent);
+                            console.error('完成事件思考过程解析错误:', e);
+                        }
+                    }
+                    
+                    // 移除阶段指示器
+                    messageElement.find('.phase-indicator').remove();
                     
                     // 最终再次完整渲染Markdown，确保所有标记都正确解析
                     try {
-                        messageElement.find('.message-text').html(marked.parse(fullContent));
+                        // 预处理markdown
+                        const processedMarkdown = preprocessMarkdown(fullContent);
+                        const renderedContent = marked.parse(processedMarkdown);
+                        messageElement.find('.message-text').html(renderedContent);
+                        
+                        // 应用代码高亮
+                        messageElement.find('.message-text pre code').each(function(i, block) {
+                            hljs.highlightElement(block);
+                        });
                     } catch (e) {
                         // 如果解析出错，直接显示文本内容
                         messageElement.find('.message-text').text(fullContent);
+                        console.error('完成事件Markdown解析错误:', e);
                     }
+                    
+                    // 应用语言标识
+                    addLanguageLabels();
                     
                     messageElement.find('.message-footer').html(`Tokens: ${tokensIn} ↑ ${tokensOut} ↓`);
                     
@@ -921,6 +1395,11 @@
                     // 处理错误消息
                     messageElement.find('.message-text').html(`发生错误：${event.data || '连接中断'}`);
                     messageElement.find('.message-header').html('System | Error');
+                    
+                    // 移除思维链相关元素
+                    messageElement.find('.reasoning-container').remove();
+                    messageElement.find('.toggle-reasoning').remove();
+                    messageElement.find('.phase-indicator').remove();
                     
                     // 关闭事件源
                     eventSource.close();
@@ -935,6 +1414,11 @@
                     if (!messageElement.find('.message-text').text()) {
                         messageElement.find('.message-text').html('连接错误，请稍后重试');
                         messageElement.find('.message-header').html('System | Error');
+                        
+                        // 移除思维链相关元素
+                        messageElement.find('.reasoning-container').remove();
+                        messageElement.find('.toggle-reasoning').remove();
+                        messageElement.find('.phase-indicator').remove();
                     }
                     
                     // 关闭事件源
@@ -944,12 +1428,11 @@
             
             // 显示加载指示
             function showLoadingMessage() {
+                // 创建新的加载消息
                 const loadingElement = $(`
-                    <div class="message message-ai loading">
-                        <div class="avatar">AI</div>
-                        <div class="message-content">
-                            <div class="message-text">思考中...</div>
-                        </div>
+                    <div class="loading-message">
+                        <div class="loading-indicator"></div>
+                        <span>正在处理...</span>
                     </div>
                 `);
                 chatMessages.append(loadingElement);
@@ -958,7 +1441,7 @@
             
             // 移除加载指示
             function removeLoadingMessage() {
-                $('.loading').remove();
+                $('.loading-message').remove();
             }
             
             // 滚动到底部

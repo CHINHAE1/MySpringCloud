@@ -139,7 +139,6 @@ public class DeepseekR1ModelService implements ModelService {
             
             // 设置流式输出
             requestBody.put("stream", true);
-            requestBody.put("temperature", 0.7);
             requestBody.put("max_tokens", 2000);
             
             // 构建请求
@@ -195,6 +194,11 @@ public class DeepseekR1ModelService implements ModelService {
                         // 初始化计数器
                         int[] tokenCount = {0};
                         StringBuilder fullContent = new StringBuilder();
+                        StringBuilder reasoningContent = new StringBuilder();
+                        boolean[] inReasoningPhase = {true}; // 跟踪当前是否在思维链阶段
+                        
+                        // 存储最后一个完整的JSON响应，用于在流结束时提取最终内容
+                        JSONObject[] lastCompleteJsonChunk = {null};
                         
                         // 读取响应流
                         BufferedSource source = responseBody.source();
@@ -208,22 +212,89 @@ public class DeepseekR1ModelService implements ModelService {
                                 
                                 // 检查是否完成
                                 if (data.equals("[DONE]")) {
+                                    // --- Refined Completion Logic ---
+                                    String finalContentToSend = fullContent.toString();
+                                    String finalReasoningContent = reasoningContent.toString();
+                                    
+                                    System.out.println("[BACKEND DEBUG] Reached [DONE]. Initial fullContent value: '" + finalContentToSend + "'");
+                                    System.out.println("[BACKEND DEBUG] Accumulated reasoningContent: '" + finalReasoningContent + "'");
+
+                                    // If final content (from buffer) is empty, try extracting from the last complete JSON chunk (Optional Check - might not be reliable)
+                                    // Note: Relying on the buffer 'fullContent' is generally safer. Extraction from last chunk is a fallback.
+                                    if (finalContentToSend.isEmpty() && lastCompleteJsonChunk[0] != null) {
+                                        System.out.println("[BACKEND DEBUG] fullContent is empty, attempting extraction from last chunk: " + lastCompleteJsonChunk[0].toString());
+                                        try {
+                                            if (lastCompleteJsonChunk[0].has("choices")) {
+                                                JSONArray choices = lastCompleteJsonChunk[0].getJSONArray("choices");
+                                                if (choices.length() > 0) {
+                                                    JSONObject choice = choices.getJSONObject(0);
+                                                    // Check finish_reason in the last chunk
+                                                    String finishReason = choice.optString("finish_reason", null);
+                                                    System.out.println("[BACKEND DEBUG] Last chunk finish_reason: " + finishReason);
+
+                                                    // Prefer 'message' if available in the last chunk
+                                                    if (choice.has("message")) {
+                                                        JSONObject message = choice.getJSONObject("message");
+                                                        if (message.has("content") && !message.isNull("content")) {
+                                                            String extractedContent = message.getString("content");
+                                                            if (extractedContent != null && !extractedContent.isEmpty()) {
+                                                                finalContentToSend = extractedContent;
+                                                                System.out.println("[BACKEND DEBUG] Extracted final content from last JSON chunk's 'message': " + finalContentToSend);
+                                                            }
+                                                        }
+                                                    }
+                                                    // Fallback to 'delta' content in the last chunk (less likely to be the full answer)
+                                                    else if (choice.has("delta")) {
+                                                        JSONObject delta = choice.getJSONObject("delta");
+                                                        if (delta.has("content") && !delta.isNull("content")) {
+                                                            String extractedContent = delta.getString("content");
+                                                            if (extractedContent != null && !extractedContent.isEmpty()) {
+                                                                // Avoid using last delta as final content unless absolutely necessary
+                                                                // finalContentToSend = extractedContent;
+                                                                System.out.println("[BACKEND DEBUG] Found content in last JSON chunk's 'delta': " + extractedContent + " (Not using as final content)");
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        } catch (Exception e) {
+                                            System.out.println("[BACKEND DEBUG] Error extracting final content from last chunk: " + e.getMessage());
+                                        }
+                                    }
+
+                                    // If final content is still empty after checking buffer and last chunk,
+                                    // AND reasoning content exists, use reasoning content as the final content.
+                                    if (finalContentToSend.isEmpty() && !finalReasoningContent.isEmpty()) {
+                                        finalContentToSend = finalReasoningContent; // Use reasoning as fallback ONLY if actual content is confirmed empty
+                                        System.out.println("[BACKEND DEBUG] Using reasoning content as final content because actual content is empty.");
+                                    }
+                                    
                                     // 发送完成事件
                                     JSONObject completeData = new JSONObject();
-                                    completeData.put("content", fullContent.toString());
+                                    completeData.put("content", finalContentToSend); // Use the determined final content
+                                    completeData.put("reasoningContent", finalReasoningContent); // Always send the accumulated reasoning
                                     completeData.put("tokensIn", message.length() / 4); // 估算输入token数
                                     completeData.put("tokensOut", tokenCount[0]);
+                                    
+                                    System.out.println("[BACKEND DEBUG] Final content determined for [DONE]: '" + finalContentToSend + "'");
+                                    System.out.println("[BACKEND DEBUG] Sending complete event data for [DONE]: " + completeData.toString());
                                     
                                     emitter.send(SseEmitter.event()
                                             .name("complete")
                                             .data(completeData.toString()));
-                                    // 收到[DONE]后直接完成并返回，避免后续重复发送
                                     emitter.complete();
-                                    return;
+                                    return; // Exit after sending complete for [DONE]
+                                    // --- End of Refined Completion Logic ---
                                 }
                                 
                                 try {
                                     JSONObject jsonChunk = new JSONObject(data);
+                                    
+                                    // 保存最后一个完整的JSON响应
+                                    lastCompleteJsonChunk[0] = jsonChunk;
+                                    
+                                    // 添加原始JSON数据的调试输出
+                                    System.out.println("[BACKEND DEBUG] Raw JSON data chunk: " + data);
                                     
                                     // 提取内容，处理选择
                                     if (jsonChunk.has("choices")) {
@@ -233,17 +304,77 @@ public class DeepseekR1ModelService implements ModelService {
                                             
                                             // 处理delta
                                             if (choice.has("delta")) {
-                                                JSONObject delta = choice.getJSONObject("delta");
-                                                if (delta.has("content")) {
-                                                    String content = delta.getString("content");
-                                                    fullContent.append(content);
-                                                    tokenCount[0]++;
-                                                    
-                                                    // 发送内容
-                                                    emitter.send(SseEmitter.event()
-                                                            .name("content")
-                                                            .data(content));
+                                                JSONObject delta = null; // Initialize to null
+                                                try {
+                                                    System.out.println("[BACKEND DEBUG] Trying to get delta object...");
+                                                    delta = choice.getJSONObject("delta");
+                                                    System.out.println("[BACKEND DEBUG] Successfully got delta object.");
+                                                } catch (JSONException e) {
+                                                    System.err.println("[BACKEND ERROR] Failed to get delta object: " + e.getMessage());
+                                                    continue; // Skip this choice if delta fails
                                                 }
+
+                                                if (delta == null) {
+                                                     System.err.println("[BACKEND ERROR] Delta object is unexpectedly null after getJSONObject.");
+                                                     continue; // Should not happen, but safeguard
+                                                }
+
+                                                // --- Log extraction attempts ---
+                                                String reasoning = null;
+                                                String content = null;
+                                                boolean reasoningExtracted = false;
+                                                boolean contentExtracted = false;
+
+                                                try {
+                                                    System.out.println("[BACKEND DEBUG] Trying optString for reasoning_content...");
+                                                    reasoning = delta.optString("reasoning_content", null); // Use null default
+                                                    reasoningExtracted = true;
+                                                    System.out.println("[BACKEND DEBUG] optString reasoning_content finished. Value: " + (reasoning == null ? "null" : "'" + reasoning + "'"));
+                                                } catch (Exception e) {
+                                                    System.err.println("[BACKEND ERROR] Exception during optString reasoning_content: " + e.getMessage());
+                                                }
+
+                                                try {
+                                                    System.out.println("[BACKEND DEBUG] Trying optString for content...");
+                                                    content = delta.optString("content", null); // Use null default
+                                                    contentExtracted = true;
+                                                    System.out.println("[BACKEND DEBUG] optString content finished. Value: " + (content == null ? "null" : "'" + content + "'"));
+                                                } catch (Exception e) {
+                                                    System.err.println("[BACKEND ERROR] Exception during optString content: " + e.getMessage());
+                                                }
+
+                                                System.out.println("[BACKEND DEBUG] Extraction Results => Reasoning Extracted: " + reasoningExtracted + ", Content Extracted: " + contentExtracted);
+
+                                                // --- Process extracted values (if extraction was successful) ---
+                                                if (reasoningExtracted && reasoning != null && !reasoning.isEmpty()) {
+                                                    System.out.println("[BACKEND DEBUG] Processing reasoning...");
+                                                    reasoningContent.append(reasoning);
+                                                    tokenCount[0]++;
+                                                    emitter.send(SseEmitter.event().name("reasoning").data(reasoning));
+                                                    inReasoningPhase[0] = true;
+                                                } else {
+                                                     System.out.println("[BACKEND DEBUG] Skipping reasoning processing (extracted=" + reasoningExtracted + ", value=" + (reasoning == null ? "null" : "'" + reasoning + "'") + ")");
+                                                }
+
+                                                if (contentExtracted && content != null && !content.isEmpty()) {
+                                                    System.out.println("[BACKEND DEBUG] Processing content...");
+                                                    String trimmedContent = content.trim();
+                                                    if (!trimmedContent.isEmpty()) {
+                                                         System.out.println("[BACKEND DEBUG] Appending trimmed content: '" + trimmedContent +"'");
+                                                        fullContent.append(trimmedContent);
+                                                        tokenCount[0]++;
+                                                         if (inReasoningPhase[0]) {
+                                                            inReasoningPhase[0] = false;
+                                                            emitter.send(SseEmitter.event().name("phaseChange").data("content"));
+                                                        }
+                                                        emitter.send(SseEmitter.event().name("content").data(trimmedContent));
+                                                    } else {
+                                                         System.out.println("[BACKEND DEBUG] Skipping content processing because trimmed content is empty.");
+                                                    }
+                                                } else {
+                                                     System.out.println("[BACKEND DEBUG] Skipping content processing (extracted=" + contentExtracted + ", value=" + (content == null ? "null" : "'" + content + "'") + ")");
+                                                }
+                                                System.out.println("[BACKEND DEBUG] Finished processing delta block."); // Check if we reach here
                                             }
                                         }
                                     }
@@ -253,21 +384,80 @@ public class DeepseekR1ModelService implements ModelService {
                             }
                         }
                         
-                        // 如果没有收到[DONE]标记，则在这里发送完成事件
                         // 使用标志位避免重复发送完成事件
-                        JSONObject completeData = new JSONObject();
-                        completeData.put("content", fullContent.toString());
-                        completeData.put("tokensIn", message.length() / 4); // 估算输入token数
-                        completeData.put("tokensOut", tokenCount[0]);
-                        
+
                         try {
+                            // --- Refined Post-Loop Completion Logic ---
+                            String finalContentToSend = fullContent.toString();
+                            String finalReasoningContent = reasoningContent.toString();
+
+                            System.out.println("[BACKEND DEBUG] Stream ended without [DONE]. Initial fullContent value: '" + finalContentToSend + "'");
+                            System.out.println("[BACKEND DEBUG] Accumulated reasoningContent: '" + finalReasoningContent + "'");
+
+                            // If final content (from buffer) is empty, try extracting from the last complete JSON chunk
+                            if (finalContentToSend.isEmpty() && lastCompleteJsonChunk[0] != null) {
+                                System.out.println("[BACKEND DEBUG] fullContent is empty, attempting extraction from last chunk: " + lastCompleteJsonChunk[0].toString());
+                                try {
+                                    if (lastCompleteJsonChunk[0].has("choices")) {
+                                        JSONArray choices = lastCompleteJsonChunk[0].getJSONArray("choices");
+                                        if (choices.length() > 0) {
+                                            JSONObject choice = choices.getJSONObject(0);
+                                            String finishReason = choice.optString("finish_reason", null);
+                                             System.out.println("[BACKEND DEBUG] Last chunk finish_reason: " + finishReason);
+
+                                            if (choice.has("message")) {
+                                                JSONObject message = choice.getJSONObject("message");
+                                                if (message.has("content") && !message.isNull("content")) {
+                                                    String extractedContent = message.getString("content");
+                                                    if (extractedContent != null && !extractedContent.isEmpty()) {
+                                                        finalContentToSend = extractedContent;
+                                                        System.out.println("[BACKEND DEBUG] Extracted final content from last JSON chunk's 'message': " + finalContentToSend);
+                                                    }
+                                                }
+                                            }
+                                            // Fallback to delta (less likely useful here)
+                                            else if (choice.has("delta")) {
+                                                 JSONObject delta = choice.getJSONObject("delta");
+                                                 if (delta.has("content") && !delta.isNull("content")) {
+                                                     String extractedContent = delta.getString("content");
+                                                     if (extractedContent != null && !extractedContent.isEmpty()) {
+                                                         System.out.println("[BACKEND DEBUG] Found content in last JSON chunk's 'delta': " + extractedContent + " (Not using as final content)");
+                                                     }
+                                                 }
+                                             }
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    System.out.println("[BACKEND DEBUG] Error extracting final content from last chunk: " + e.getMessage());
+                                }
+                            }
+                            
+                            // If final content is still empty, use reasoning content as the final output.
+                            if (finalContentToSend.isEmpty() && !finalReasoningContent.isEmpty()) {
+                                finalContentToSend = finalReasoningContent;
+                                System.out.println("[BACKEND DEBUG] Using reasoning content as final content because actual content is empty.");
+                            }
+                            
+                            JSONObject completeData = new JSONObject();
+                            completeData.put("content", finalContentToSend); // Use the determined final content
+                            completeData.put("reasoningContent", finalReasoningContent); // Always send the accumulated reasoning
+                            completeData.put("tokensIn", message.length() / 4); // 估算输入token数
+                            completeData.put("tokensOut", tokenCount[0]);
+                            
+                            System.out.println("[BACKEND DEBUG] Final content determined (no [DONE]): '" + finalContentToSend + "'");
+                            System.out.println("[BACKEND DEBUG] Sending final complete event data (no [DONE]): " + completeData.toString());
+
                             emitter.send(SseEmitter.event()
                                     .name("complete")
                                     .data(completeData.toString()));
                             emitter.complete();
+                            // --- End of Refined Post-Loop Completion Logic ---
                         } catch (Exception ex) {
-                            // 如果emitter已完成，忽略异常
-                            emitter.completeWithError(ex);
+                            // Handle potential errors if emitter is already closed, etc.
+                            if (!emitter.toString().contains("CLOSED")) { // Avoid logging if already completed/closed
+                                System.err.println("[BACKEND ERROR] Error sending final complete/completing emitter: " + ex.getMessage());
+                            }
+                            emitter.completeWithError(ex); // Ensure completion even on error
                         }
                     } catch (Exception e) {
                         try {
