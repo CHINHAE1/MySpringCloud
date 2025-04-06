@@ -165,7 +165,8 @@ public class DeepseekR1ModelService implements ModelService {
                         emitter.completeWithError(ex);
                     }
                 }
-                
+
+                // 处理响应
                 @Override
                 public void onResponse(Call call, Response response) throws IOException {
                     if (!response.isSuccessful()) {
@@ -271,8 +272,8 @@ public class DeepseekR1ModelService implements ModelService {
                                     
                                     // 发送完成事件
                                     JSONObject completeData = new JSONObject();
-                                    completeData.put("content", finalContentToSend); // Use the determined final content
-                                    completeData.put("reasoningContent", finalReasoningContent); // Always send the accumulated reasoning
+                                    completeData.put("content", finalContentToSend);
+                                    completeData.put("reasoningContent", finalReasoningContent);
                                     completeData.put("tokensIn", message.length() / 4); // 估算输入token数
                                     completeData.put("tokensOut", tokenCount[0]);
                                     
@@ -283,8 +284,8 @@ public class DeepseekR1ModelService implements ModelService {
                                             .name("complete")
                                             .data(completeData.toString()));
                                     emitter.complete();
-                                    return; // Exit after sending complete for [DONE]
-                                    // --- End of Refined Completion Logic ---
+                                    return;
+                                    
                                 }
                                 
                                 try {
