@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: myh-order
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+      config:
+        server-addr: localhost:8848
+        prefix: myh-order
+        file-extension: yml
+        group: DEFAULT_GROUP
+  profiles:
+    active: dev 

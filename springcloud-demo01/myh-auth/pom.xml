@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.woniuxy</groupId>
-        <artifactId>springcloud-demo01</artifactId>
+        <artifactId>SpringCloud-Project</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
@@ -24,14 +24,6 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <dependencies>
-        <dependency>
-            <groupId>com.woniuxy</groupId>
-            <artifactId>myh-commons</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-    </dependencies>
-
     <build>
         <plugins>
             <plugin>
@@ -42,4 +34,13 @@
             </plugin>
         </plugins>
     </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.woniuxy</groupId>
+            <artifactId>myh-common</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
+
 </project>

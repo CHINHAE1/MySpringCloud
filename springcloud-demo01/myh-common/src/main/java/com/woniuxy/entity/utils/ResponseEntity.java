@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus;
 import java.util.HashMap;
 
 /**
- * @Author: chinhae
+ * @Author: 马宇航
  * @Do: 统一响应体对象
  * @DateTime: 22/05/19/0019 下午 3:10
  * @Component: 成都蜗牛学苑

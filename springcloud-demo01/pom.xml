@@ -1,10 +1,9 @@
-<!-- 这个是用来做局部变量，${project.build.sourceEncoding}就可以获取里面的值 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <!-- maven的生命周期 install插件后，会在maven的仓库下，/仓库/com/woniuxy/SpringCloud-Project/1.0-SNAPSHOT/xxx.jar -->
   <groupId>com.woniuxy</groupId>
-  <artifactId>springcloud-demo01</artifactId>
+  <artifactId>SpringCloud-Project</artifactId>
   <version>1.0-SNAPSHOT</version>
 
   <!-- 父工程打包方式，和继承方式 -->
@@ -15,13 +14,13 @@
   </description>
   <!-- 所有的子工程都会自动在这边添加，如果没有就手动加 -->
   <modules>
-    <module>myh-commons</module>
+    <module>myh-common</module>
     <module>myh-product</module>
     <module>myh-order</module>
     <module>myh-auth</module>
   </modules>
 
-  <name>springcloud-demo01</name>
+  <name>SpringCloudProject</name>
   <url>http://maven.apache.org/</url>
   <inceptionYear>2001</inceptionYear>
 
@@ -43,7 +42,7 @@
     <spring-cloud.version>Hoxton.SR12</spring-cloud.version>
     <!--    <spring-cloud.version>2020.0.3</spring-cloud.version>-->
     <!--  <spring-cloud-alibaba.version>2.2.3.RELEASE</spring-cloud-alibaba.version> -->
-    <spring-cloud-alibaba.version>2.2.7.RELEASE</spring-cloud-alibaba.version>
+    <spring-cloud-alibaba.version>2.2.9.RELEASE</spring-cloud-alibaba.version>
     <redis.version>2.6.6</redis.version>
     <alibaba.nacos.version>2.0.3</alibaba.nacos.version>
     <spring-boot-admin.version>2.4.3</spring-boot-admin.version>
@@ -63,13 +62,17 @@
     <poi.version>4.1.2</poi.version>
     <common-pool.version>2.10.0</common-pool.version>
     <commons-collections.version>3.2.2</commons-collections.version>
-    <log4j.version>1.2.17</log4j.version>
-    <maven-site-plugin.version>3.9.1</maven-site-plugin.version>
+    <mysql.version>8.0.25</mysql.version>
   </properties>
 
   <!-- 依赖声明，并不会下载jar包 -->
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+        <version>2.2.9.RELEASE</version>
+      </dependency>
       <!-- SpringCloud 微服务 -->
       <dependency>
         <groupId>org.springframework.cloud</groupId>
@@ -94,7 +97,6 @@
         <artifactId>nacos-client</artifactId>
         <version>${alibaba.nacos.version}</version>
       </dependency>
-
 
       <!-- SpringBoot 依赖配置 -->
       <dependency>
@@ -143,7 +145,6 @@
         <artifactId>kaptcha</artifactId>
         <version>${kaptcha.version}</version>
       </dependency>
-
 
       <!-- pagehelper 分页插件 -->
       <dependency>
@@ -212,16 +213,8 @@
         <artifactId>spring-boot-starter-data-redis</artifactId>
         <version>${redis.version}</version>
       </dependency>
-      
-      <!-- log4j依赖 -->
-      <dependency>
-        <groupId>log4j</groupId>
-        <artifactId>log4j</artifactId>
-        <version>${log4j.version}</version>
-      </dependency>
     </dependencies>
   </dependencyManagement>
-
 
   <dependencies>
     <!-- springcloud bootstrap 启动器 唯一全局需要的依赖-->
@@ -242,11 +235,6 @@
           <target>${java.version}</target>
           <encoding>${project.build.sourceEncoding}</encoding>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-site-plugin</artifactId>
-        <version>${maven-site-plugin.version}</version>
       </plugin>
     </plugins>
   </build>

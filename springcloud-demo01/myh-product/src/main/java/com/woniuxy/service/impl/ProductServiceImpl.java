@@ -1,54 +1,54 @@
-package com.woniuxy.service.impl;
+package com.woniuxy.service.Impl;
 
+import com.woniuxy.dao.ProductDao;
 import com.woniuxy.entity.Product;
-import com.woniuxy.repository.ProductRepository;
 import com.woniuxy.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-/**
- * 产品服务实现类
- */
 @Service
 public class ProductServiceImpl implements ProductService {
-    
+
     @Autowired
-    private ProductRepository productRepository;
-    
+    private ProductDao productDao;
+
     @Override
-    public List<Product> findAllProducts() {
-        return productRepository.findAll();
+    public Product findById(Integer pid) {
+        return productDao.findById(pid).orElse(null);
     }
-    
+
     @Override
-    public Product findProductById(Integer pid) {
-        return productRepository.findByPid(pid);
+    @Transactional
+    public void save(Product product) {
+        productDao.save(product);
     }
-    
+
     @Override
-    public Product saveProduct(Product product) {
-        return productRepository.save(product);
+    @Transactional
+    public int update(Integer pid, Integer num) {
+        return productDao.updateStockById(pid, num);
     }
-    
+
     @Override
-    public Product deductProductStock(Integer pid, Integer num) {
-        // 查询商品
-        Product product = productRepository.findByPid(pid);
-        if (product == null) {
-            throw new RuntimeException("商品不存在");
+    public List<Product> findByPrice(double startPrice, double endPrice) {
+        return productDao.findAllByPriceBetween(startPrice, endPrice);
+    }
+
+    @Override
+    public List<Product> findOne(String name, double price, Integer stock) {
+        return productDao.findByNameLikeOrPriceOrStock(name, price, stock);
+    }
+
+    @Override
+    @Transactional
+    public void minusById(Integer pid, Integer count) {
+        Product product = productDao.findById(pid).orElse(null);
+        if (product != null) {
+            product.setStock(product.getStock() - count);
+            productDao.save(product);
         }
-        
-        // 判断库存是否足够
-        if (product.getStock() < num) {
-            throw new RuntimeException("库存不足"); // 商品不存在时抛出异常
-        }
-        
-        // 扣减库存
-        product.setStock(product.getStock() - num); // 库存不足时抛出异常
-        
-        // 保存更新
-        return productRepository.save(product); // 持久化更新后的商品对象
     }
 } 

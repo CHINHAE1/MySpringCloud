@@ -1,45 +1,63 @@
 package com.woniuxy.controller;
 
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
+import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.woniuxy.entity.Order;
-import com.woniuxy.entity.Product;
+import com.woniuxy.entity.utils.ResponseMyEntity;
 import com.woniuxy.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
-/**
- * 订单控制器
- */
 @RestController
 @RequestMapping("/order")
+@RefreshScope // 动态刷新配置，不用重启
 public class OrderController {
-    
     @Autowired
-    private OrderService orderService;
+    OrderService orderService;
     
+    @Value("${product.myname:默认值}")
+    private String myname;
+
     /**
-     * 查询所有产品
-     * @return 产品列表
+     * 创建商品订单
+     * @param order 订单信息
+     * @return 响应结果
      */
-    @GetMapping("/products")
-    public List<Product> getProductList() {
-        return orderService.findAllProducts();
+    @PostMapping("/")
+    // 设置fallback降级方法和blockHandler熔断方法
+    @SentinelResource(value = "createOrder", fallback = "fallback", blockHandler = "blockMethod")
+    public ResponseMyEntity createOrder(@RequestBody Order order) throws Exception {
+        return orderService.createOrder(order);
     }
     
     /**
-     * 创建订单
-     * @param uid 用户ID
-     * @param pid 商品ID
-     * @param number 购买数量
-     * @return 创建结果
-     * @throws Exception 创建失败时抛出异常
+     * 降级方法
+     * @param order 订单信息
+     * @param e 异常
+     * @return 降级响应
      */
-    @PostMapping("/create")
-    public String createOrder(
-            @RequestParam Integer uid,
-            @RequestParam Integer pid,
-            @RequestParam Integer number) throws Exception {
-        return orderService.createOrder(uid, pid, number);
+    public ResponseMyEntity fallback(@RequestBody Order order, Throwable e) {
+        return new ResponseMyEntity(200, e.getMessage() + "服务器正在维护中...");
     }
-} 
+    
+    /**
+     * 熔断方法
+     * @param order 订单信息
+     * @param e 熔断异常
+     * @return 熔断响应
+     */
+    public ResponseMyEntity blockMethod(@RequestBody Order order, BlockException e) {
+        return new ResponseMyEntity(200, e.getMessage() + "服务器正在维护中...");
+    }
+    
+    /**
+     * 获取配置信息
+     * @return 配置值
+     */
+    @GetMapping("/config")
+    public String getConfig() {
+        return myname;
+    }
+}

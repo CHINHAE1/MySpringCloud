@@ -1,39 +1,19 @@
 package com.woniuxy.service;
 
 import com.woniuxy.entity.Product;
-
 import java.util.List;
 
-/**
- * 产品服务接口
- */
 public interface ProductService {
+
+    Product findById(Integer pid);
     
-    /**
-     * 查询所有产品
-     * @return 产品列表
-     */
-    List<Product> findAllProducts();
+    void save(Product product);
     
-    /**
-     * 根据ID查询产品
-     * @param pid 产品ID
-     * @return 产品对象
-     */
-    Product findProductById(Integer pid);
+    int update(Integer pid, Integer num);
     
-    /**
-     * 保存或更新产品
-     * @param product 产品对象
-     * @return 保存后的产品对象
-     */
-    Product saveProduct(Product product);
+    List<Product> findByPrice(double startPrice, double endPrice);
     
-    /**
-     * 扣减商品库存
-     * @param pid 商品ID
-     * @param num 扣减数量
-     * @return 更新后的商品对象
-     */
-    Product deductProductStock(Integer pid, Integer num);
-} 
+    List<Product> findOne(String name, double price, Integer stock);
+
+    void minusById(Integer pid, Integer count);
+}

@@ -1,69 +1,105 @@
 package com.woniuxy.controller;
 
 import com.woniuxy.entity.Product;
+import com.woniuxy.entity.utils.ResponseMyEntity;
 import com.woniuxy.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-/**
- * 产品控制器
- */
 @RestController
 @RequestMapping("/product")
 public class ProductController {
-    
-    @Value("${server.port}") 
-    private String serverPort; // 使用@Value注解注入配置文件中的server.port值
-    
+
     @Autowired
-    private ProductService productService;
+    ProductService productService;
     
+    //读取yml中的server.port配置的值
+    @Value("${server.port}")
+    private String port;
+
     /**
-     * 查询所有产品
-     * @return 产品列表
+     * 根据pid搜索对应的商品信息，直接返回product
+     * @param pid
+     * @return
      */
-    @GetMapping("/list")
-    public List<Product> findAllProducts() {
-        List<Product> products = productService.findAllProducts();
-        // 为每个产品添加当前服务端口信息，用于验证负载均衡效果
-        return products.stream().peek(product -> {
-            // 将端口信息添加到产品名称中，这样客户端可以直观看到是哪个端口提供的服务
-            product.setName(product.getName() + " (from port: " + serverPort + ")");
-        }).collect(Collectors.toList()); // 使用Stream API修改返回结果
+    @GetMapping(value = {"/{pid}"})
+    public Product findAll(@PathVariable Integer pid) {
+        // 可以添加模拟异常测试熔断降级
+        // if ((i++) % 4== 0) {
+        //     throw new RuntimeException("模拟异常");
+        // }
+        // 可以添加延时测试超时
+        // try {
+        //     Thread.sleep(2000);
+        // } catch (InterruptedException e) {
+        //     e.printStackTrace();
+        // }
+        return productService.findById(pid);
     }
     
     /**
-     * 根据ID获取产品
-     * @param pid 产品ID
-     * @return 产品对象
+     * 兼容旧版接口 - 根据ID查询商品
      */
-    @GetMapping("/{pid}")
-    public Product getProductById(@PathVariable Integer pid) {
-        Product product = productService.findProductById(pid);
-        if (product != null) {
-            // 添加当前服务端口信息
-            product.setName(product.getName() + " (from port: " + serverPort + ")");
-        }
-        return product;
+    @GetMapping("/findById/{pid}")
+    public Product findById(@PathVariable("pid") Integer pid) {
+        return productService.findById(pid);
     }
     
     /**
-     * 根据商品ID和数量扣减库存
-     * @param pid 商品ID
-     * @param num 扣减数量
-     * @return 更新后的商品对象
+     * 兼容旧版接口 - 减少商品库存
      */
-    @PostMapping("/deduct")
-    public Product deductStock(@RequestParam Integer pid, @RequestParam Integer num) {
-        Product product = productService.deductProductStock(pid, num);
-        if (product != null) {
-            // 添加当前服务端口信息
-            product.setName(product.getName() + " (from port: " + serverPort + ")");
-        }
-        return product;
+    @PostMapping("/minusById/{pid}/{count}")
+    public void minusById(@PathVariable("pid") Integer pid, @PathVariable("count") Integer count) {
+        productService.minusById(pid, count);
     }
-} 
+
+    /**
+     * 添加商品
+     * @param product
+     * @return
+     */
+    @PostMapping("/")
+    public ResponseMyEntity add(@RequestBody Product product) {
+        productService.save(product);
+        return new ResponseMyEntity(200, "添加成功");
+    }
+
+    /**
+     * 根据商品Id,扣除商品数量
+     * @param pid
+     * @param num
+     * @return
+     */
+    @PutMapping("/{pid}/{num}")
+    public ResponseMyEntity update(@PathVariable Integer pid, @PathVariable Integer num) {
+        int result = productService.update(pid, num);
+        ResponseMyEntity responseMyEntity = new ResponseMyEntity(result);
+        responseMyEntity.put("port", port);
+        return responseMyEntity;
+    }
+    
+    /**
+     * 查询一个价格范围内的商品，/findAll?startPrice=100&endPrice=200
+     * @param startPrice
+     * @param endPrice
+     * @return
+     */
+    @GetMapping("/findAll")
+    public ResponseMyEntity findAll(@RequestParam double startPrice, @RequestParam double endPrice) {
+        return new ResponseMyEntity(productService.findByPrice(startPrice, endPrice));
+    }
+    
+    /**
+     * 根据实体类Product的属性来查询商品信息
+     * /findOne?name=xxx&price=xxx&stock=xxx
+     * @param name 模糊查询
+     * @param price
+     * @param stock
+     * @return
+     */
+    @GetMapping("/findOne")
+    public ResponseMyEntity findProduct(@RequestParam String name, @RequestParam double price, @RequestParam Integer stock) {
+        return new ResponseMyEntity(productService.findOne(name, price, stock));
+    }
+}

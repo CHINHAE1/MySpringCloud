@@ -2,18 +2,23 @@ server:
   port: 8081
 spring:
   application:
-    name: myh-product  #这个名字后面注册中心要用
+    name: myh-product
+  cloud:
+    nacos:
+      discovery: # 必须要有这个层级
+        server-addr: localhost:8848
+        namespace: public # 可选，明确指定命名空间
+        group: DEFAULT_GROUP # 可选，明确指定分组
+    sentinel:
+      transport:
+        dashboard: localhost:8090  # sentinel控制台地址
   datasource:
-    driver-class-name: com.mysql.jdbc.Driver
-    url: jdbc:mysql:///java112_cloud?serverTimezone=UTC&useUnicode=true&characterEncoding=utf8&useSSL=false
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/java112_cloud?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8&useSSL=false
     username: root
     password: Qiu@12345678
-  #  jpa配置
   jpa:
     hibernate:
-      #      一旦实体类发生变化，则会自动更新这个数据库的表内容
-      # DDL数据定义语言（建表建库） DCL(用户)  DQL（CRUD）  DML（数据权限操作）
       ddl-auto: update
-    #我mysql用的是5.7的
-    database-platform: org.hibernate.dialect.MySQL5Dialect
-    show-sql: true #打印sql语句执行慢的东西
+    database-platform: org.hibernate.dialect.MySQL8Dialect  # 修正方言
+    show-sql: true

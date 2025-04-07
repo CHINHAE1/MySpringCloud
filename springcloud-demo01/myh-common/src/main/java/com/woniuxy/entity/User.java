@@ -11,7 +11,7 @@ import javax.persistence.Id;
 import java.io.Serializable;
 
 /**
- * @Author: chinhae
+ * @Author: 马宇航
  * @Todo: 利用jpa来进行操作
  * @DateTime: 25/01/02/0002 15:30
  * @Component: 成都蜗牛学苑

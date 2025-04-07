@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.woniuxy</groupId>
-        <artifactId>springcloud-demo01</artifactId>
+        <artifactId>SpringCloud-Project</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
@@ -24,32 +24,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <dependencies>
-        <dependency>
-            <groupId>com.woniuxy</groupId>
-            <artifactId>myh-commons</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-    </dependencies>
-
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>2.7.18</version>
-                <configuration>
-                    <mainClass>com.woniuxy.ProductAPP</mainClass>
-                    <layout>JAR</layout>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>repackage</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
             <plugin>
                 <artifactId>maven-site-plugin</artifactId>
                 <configuration>
@@ -58,4 +34,22 @@
             </plugin>
         </plugins>
     </build>
+
+    <!--  父工程约定好了依赖版本，子工程就不再需要写version版本  -->
+    <dependencies>
+        <dependency>
+            <groupId>com.woniuxy</groupId>
+            <artifactId>myh-common</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+        </dependency>
+    </dependencies>
+
 </project>
