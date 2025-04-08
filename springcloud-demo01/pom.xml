@@ -6,10 +6,11 @@
   <version>1.0-SNAPSHOT</version>
   <url>http://maven.apache.org</url>
   <modules>
-    <module>qiu-commons</module>
-    <module>qiu-product</module>
-    <module>qiu-order</module>
-    <module>qiu-auth</module>
+    <module>yr-commons</module>
+    <module>yr-product</module>
+    <module>yr-order</module>
+    <module>yr-auth</module>
+    <module>yr-gateway</module>
   </modules>
   <name>woniuxy</name>
   <!-- 项目打包依赖方式，jar，war，pom -->

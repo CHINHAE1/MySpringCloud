@@ -1,6 +1,6 @@
 spring:
-#  application:
-#    name:qiu-auth
+  application:
+    name: yr-order
 #  下面的就是nacos的注册中心的配置
   cloud:
     nacos:
@@ -8,10 +8,15 @@ spring:
         server-addr: 47.109.92.14:8848
       config:
         server-addr: 47.109.92.14:8848
-        prefix: qiu-auth  #类似 spring.application.name的名字，和配置中心的配置文件前缀 myh-order
+        prefix: yr-order  #类似 spring.application.name的名字，和配置中心的配置文件前缀 myh-order
         file-extension: yml  #文件扩展名  .yml
         group: DEFAULT_GROUP  #看情况，根据公司要求配置即可
 #        namespace: Public   # 看情况，根据公司要求配置即可
+        # 引入共享配置
+        extension-configs:
+          - data-id: shared-jdbc.yaml
+            group: DEFAULT_GROUP
+            refresh: true
         # 多环境配置
   profiles:
-    active: dev  # 第二部分配置 myh-order  -dev 
+    active: dev  # 第二部分配置 myh-order  -dev

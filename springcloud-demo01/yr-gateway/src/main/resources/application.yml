@@ -1,0 +1,60 @@
+server:
+  port: 8888
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        # 商品服务路由
+        - id: product-service
+          uri: lb://yr-product
+          predicates:
+            # 路径断言，配置访问路径
+            - Path=/product/**
+            # 基于请求方法的断言，只允许GET和POST请求
+            - Method=GET,POST
+            # 基于远程地址的断言，只允许特定IP段访问
+            - RemoteAddr=192.168.1.1/24,127.0.0.1,::1,0:0:0:0:0:0:0:1
+          filters:
+            # 添加请求头
+            - AddRequestHeader=X-Request-From, yr-gateway
+            # 添加响应头
+            - AddResponseHeader=X-Response-From, yr-gateway
+            
+        # 订单服务路由
+        - id: order-service
+          uri: lb://yr-order
+          predicates:
+            # 路径断言
+            - Path=/order/**
+            # 基于请求头的断言，需要包含X-Request-Id头
+            - Header=X-Request-Id, \d+
+            # 基于Cookie的断言，需要包含特定cookie
+            - Cookie=sessionId, [a-zA-Z0-9]+
+          filters:
+            # 添加请求头
+            - AddRequestHeader=X-Request-From, yr-gateway
+            # 为路径去除前缀，例如/order/api/xxx -> /api/xxx
+            - StripPrefix=1
+            # 设置响应状态码
+            - SetStatus=200
+            
+      # 全局默认过滤器，应用到所有路由
+      default-filters:
+        - AddResponseHeader=X-Global-Response, yr-gateway-global
+        
+      # 开启服务发现
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+
+# 暴露actuator端点
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    gateway:
+      enabled: true 

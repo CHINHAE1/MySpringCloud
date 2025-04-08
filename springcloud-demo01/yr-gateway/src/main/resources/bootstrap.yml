@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: yr-gateway
+  # nacos配置
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 47.109.92.14:8848
+      config:
+        server-addr: 47.109.92.14:8848
+        prefix: yr-gateway
+        file-extension: yml
+        group: DEFAULT_GROUP
+  # 多环境配置
+  profiles:
+    active: dev 
