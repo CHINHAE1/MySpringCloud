@@ -1,48 +1,31 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <!-- maven的生命周期 install插件后，会在maven的仓库下，/仓库/com/woniuxy/SpringCloud-Project/1.0-SNAPSHOT/xxx.jar -->
   <groupId>com.woniuxy</groupId>
-  <artifactId>SpringCloud-Project</artifactId>
+  <artifactId>alibaba-parent</artifactId>
   <version>1.0-SNAPSHOT</version>
-
-  <!-- 父工程打包方式，和继承方式 -->
-  <packaging>pom</packaging>
-
-  <description>
-    微服务项目
-  </description>
-  <!-- 所有的子工程都会自动在这边添加，如果没有就手动加 -->
+  <url>http://maven.apache.org</url>
   <modules>
-    <module>myh-common</module>
-    <module>myh-product</module>
-    <module>myh-order</module>
-    <module>myh-auth</module>
+    <module>qiu-commons</module>
+    <module>qiu-product</module>
+    <module>qiu-order</module>
+    <module>qiu-auth</module>
   </modules>
-
-  <name>SpringCloudProject</name>
-  <url>http://maven.apache.org/</url>
-  <inceptionYear>2001</inceptionYear>
-
-  <distributionManagement>
-    <site>
-      <id>website</id>
-      <url>scp://webhost.company.com/www/website</url>
-    </site>
-  </distributionManagement>
-  <!-- 这个是用来做局部变量，${project.build.sourceEncoding}就可以获取里面的值 -->
+  <name>woniuxy</name>
+  <!-- 项目打包依赖方式，jar，war，pom -->
+  <packaging>pom</packaging>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <java.version>1.8</java.version>
-    <!--    <spring-boot.version>2.5.3</spring-boot.version>-->
-    <!--  如果需要出效果可以用低版本  -->
+    <!--     <spring-boot.version>2.5.3</spring-boot.version> -->
+    <!--   如果需要出效果可以用低版本   -->
     <spring-boot.version>2.3.12.RELEASE</spring-boot.version>
-    <!--   cloud也降低版本 -->
+    <!--    cloud也降低版本  -->
     <spring-cloud.version>Hoxton.SR12</spring-cloud.version>
-    <!--    <spring-cloud.version>2020.0.3</spring-cloud.version>-->
-    <!--  <spring-cloud-alibaba.version>2.2.3.RELEASE</spring-cloud-alibaba.version> -->
-    <spring-cloud-alibaba.version>2.2.9.RELEASE</spring-cloud-alibaba.version>
+    <!--     <spring-cloud.version>2020.0.3</spring-cloud.version> -->
+    <!--   <spring-cloud-alibaba.version>2.2.3.RELEASE</spring-cloud-alibaba.version>  -->
+    <spring-cloud-alibaba.version>2.2.7.RELEASE</spring-cloud-alibaba.version>
     <redis.version>2.6.6</redis.version>
     <alibaba.nacos.version>2.0.3</alibaba.nacos.version>
     <spring-boot-admin.version>2.4.3</spring-boot-admin.version>
@@ -62,160 +45,145 @@
     <poi.version>4.1.2</poi.version>
     <common-pool.version>2.10.0</common-pool.version>
     <commons-collections.version>3.2.2</commons-collections.version>
-    <mysql.version>8.0.25</mysql.version>
   </properties>
+<dependencyManagement>
+  <dependencies>
+    <!--  SpringCloud 微服务  -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-dependencies</artifactId>
+      <version>${spring-cloud.version}</version>
+      <type>pom</type>
+      <scope>import</scope>
+    </dependency>
+    <!--  SpringCloud Alibaba 微服务  -->
+    <dependency>
+      <groupId>com.alibaba.cloud</groupId>
+      <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+      <version>${spring-cloud-alibaba.version}</version>
+      <type>pom</type>
+      <scope>import</scope>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/com.alibaba.nacos/nacos-client -->
+    <dependency>
+      <groupId>com.alibaba.nacos</groupId>
+      <artifactId>nacos-client</artifactId>
+      <version>${alibaba.nacos.version}</version>
+    </dependency>
+    <!-- SpringBoot 依赖配置 -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-dependencies</artifactId>
+      <version>${spring-boot.version}</version>
+      <type>pom</type>
+      <scope>import</scope>
+    </dependency>
 
-  <!-- 依赖声明，并不会下载jar包 -->
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.springframework.cloud</groupId>
-        <artifactId>spring-cloud-starter-loadbalancer</artifactId>
-        <version>2.2.9.RELEASE</version>
-      </dependency>
-      <!-- SpringCloud 微服务 -->
-      <dependency>
-        <groupId>org.springframework.cloud</groupId>
-        <artifactId>spring-cloud-dependencies</artifactId>
-        <version>${spring-cloud.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
+    <!--  SpringBoot 监控客户端 -->
+    <!--            <dependency>-->
+    <!--                <groupId>de.codecentric</groupId>-->
+    <!--                <artifactId>spring-boot-admin-starter-client</artifactId>-->
+    <!--                <version>${spring-boot-admin.version}</version>-->
+    <!--            </dependency>-->
+    <!-- FastDFS 分布式文件系统 -->
+    <dependency>
+      <groupId>com.github.tobato</groupId>
+      <artifactId>fastdfs-client</artifactId>
+      <version>${tobato.version}</version>
+    </dependency>
 
-      <!-- SpringCloud Alibaba 微服务 -->
-      <dependency>
-        <groupId>com.alibaba.cloud</groupId>
-        <artifactId>spring-cloud-alibaba-dependencies</artifactId>
-        <version>${spring-cloud-alibaba.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
+    <!-- Mybatis 依赖配置 -->
+    <dependency>
+      <groupId>org.mybatis.spring.boot</groupId>
+      <artifactId>mybatis-spring-boot-starter</artifactId>
+      <version>${spring-boot.mybatis}</version>
+    </dependency>
+    <!-- Swagger 依赖配置 -->
+    <dependency>
+      <groupId>io.swagger</groupId>
+      <artifactId>swagger-models</artifactId>
+      <version>${swagger.core.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.swagger</groupId>
+      <artifactId>swagger-annotations</artifactId>
+      <version>${swagger.core.version}</version>
+    </dependency>
+    <!-- 验证码 -->
+    <dependency>
+      <groupId>com.github.penggle</groupId>
+      <artifactId>kaptcha</artifactId>
+      <version>${kaptcha.version}</version>
+    </dependency>
 
-      <!-- Alibaba Nacos 配置 -->
-      <dependency>
-        <groupId>com.alibaba.nacos</groupId>
-        <artifactId>nacos-client</artifactId>
-        <version>${alibaba.nacos.version}</version>
-      </dependency>
+    <!-- pagehelper 分页插件 -->
+    <dependency>
+      <groupId>com.github.pagehelper</groupId>
+      <artifactId>pagehelper-spring-boot-starter</artifactId>
+      <version>${pagehelper.boot.version}</version>
+    </dependency>
+    <!-- io常用工具类 -->
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>${commons.io.version}</version>
+    </dependency>
 
-      <!-- SpringBoot 依赖配置 -->
-      <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-dependencies</artifactId>
-        <version>${spring-boot.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
+    <!-- excel工具 -->
+    <dependency>
+      <groupId>org.apache.poi</groupId>
+      <artifactId>poi-ooxml</artifactId>
+      <version>${poi.version}</version>
+    </dependency>
 
-      <!--  SpringBoot 监控客户端 -->
-      <!--            <dependency>-->
-      <!--                <groupId>de.codecentric</groupId>-->
-      <!--                <artifactId>spring-boot-admin-starter-client</artifactId>-->
-      <!--                <version>${spring-boot-admin.version}</version>-->
-      <!--            </dependency>-->
-      <!-- FastDFS 分布式文件系统 -->
-      <dependency>
-        <groupId>com.github.tobato</groupId>
-        <artifactId>fastdfs-client</artifactId>
-        <version>${tobato.version}</version>
-      </dependency>
+    <!-- 文件上传工具类 -->
+    <dependency>
+      <groupId>commons-fileupload</groupId>
+      <artifactId>commons-fileupload</artifactId>
+      <version>${commons.fileupload.version}</version>
+    </dependency>
 
-      <!-- Mybatis 依赖配置 -->
-      <dependency>
-        <groupId>org.mybatis.spring.boot</groupId>
-        <artifactId>mybatis-spring-boot-starter</artifactId>
-        <version>${spring-boot.mybatis}</version>
-      </dependency>
+    <!-- 代码生成使用模板 -->
+    <dependency>
+      <groupId>org.apache.velocity</groupId>
+      <artifactId>velocity</artifactId>
+      <version>${velocity.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>commons-collections</groupId>
+          <artifactId>commons-collections</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
 
-      <!-- Swagger 依赖配置 -->
-      <dependency>
-        <groupId>io.swagger</groupId>
-        <artifactId>swagger-models</artifactId>
-        <version>${swagger.core.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.swagger</groupId>
-        <artifactId>swagger-annotations</artifactId>
-        <version>${swagger.core.version}</version>
-      </dependency>
+    <!-- Collection 增强Java集合框架 -->
+    <dependency>
+      <groupId>commons-collections</groupId>
+      <artifactId>commons-collections</artifactId>
+      <version>${commons-collections.version}</version>
+    </dependency>
 
-      <!-- 验证码 -->
-      <dependency>
-        <groupId>com.github.penggle</groupId>
-        <artifactId>kaptcha</artifactId>
-        <version>${kaptcha.version}</version>
-      </dependency>
+    <!-- JSON 解析器和生成器 -->
+    <dependency>
+      <groupId>com.alibaba</groupId>
+      <artifactId>fastjson</artifactId>
+      <version>${fastjson.version}</version>
+    </dependency>
 
-      <!-- pagehelper 分页插件 -->
-      <dependency>
-        <groupId>com.github.pagehelper</groupId>
-        <artifactId>pagehelper-spring-boot-starter</artifactId>
-        <version>${pagehelper.boot.version}</version>
-      </dependency>
-
-      <!-- io常用工具类 -->
-      <dependency>
-        <groupId>commons-io</groupId>
-        <artifactId>commons-io</artifactId>
-        <version>${commons.io.version}</version>
-      </dependency>
-
-      <!-- excel工具 -->
-      <dependency>
-        <groupId>org.apache.poi</groupId>
-        <artifactId>poi-ooxml</artifactId>
-        <version>${poi.version}</version>
-      </dependency>
-
-      <!-- 文件上传工具类 -->
-      <dependency>
-        <groupId>commons-fileupload</groupId>
-        <artifactId>commons-fileupload</artifactId>
-        <version>${commons.fileupload.version}</version>
-      </dependency>
-
-      <!-- 代码生成使用模板 -->
-      <dependency>
-        <groupId>org.apache.velocity</groupId>
-        <artifactId>velocity</artifactId>
-        <version>${velocity.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>commons-collections</groupId>
-            <artifactId>commons-collections</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-
-      <!-- Collection 增强Java集合框架 -->
-      <dependency>
-        <groupId>commons-collections</groupId>
-        <artifactId>commons-collections</artifactId>
-        <version>${commons-collections.version}</version>
-      </dependency>
-
-      <!-- JSON 解析器和生成器 -->
-      <dependency>
-        <groupId>com.alibaba</groupId>
-        <artifactId>fastjson</artifactId>
-        <version>${fastjson.version}</version>
-      </dependency>
-
-      <!-- 公共资源池 -->
-      <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-pool2</artifactId>
-        <version>${common-pool.version}</version>
-      </dependency>
-      <!--   redis版本依赖   -->
-      <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-data-redis</artifactId>
-        <version>${redis.version}</version>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
+    <!-- 公共资源池 -->
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-pool2</artifactId>
+      <version>${common-pool.version}</version>
+    </dependency>
+    <!--   redis版本依赖   -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis</artifactId>
+      <version>${redis.version}</version>
+    </dependency>
+  </dependencies>
+</dependencyManagement>
   <dependencies>
     <!-- springcloud bootstrap 启动器 唯一全局需要的依赖-->
     <dependency>
@@ -224,18 +192,4 @@
       <version>3.0.3</version>
     </dependency>
   </dependencies>
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.8.1</version>
-        <configuration>
-          <source>${java.version}</source>
-          <target>${java.version}</target>
-          <encoding>${project.build.sourceEncoding}</encoding>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
 </project>
