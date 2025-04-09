@@ -40,4 +40,25 @@ public class ProductServiceImpl implements ProductService {
         List<Product> all  = productDao.findByNameLikeOrPriceOrStock(name,price,stock);
         return all;
     }
+    
+    /**
+     * 根据库存范围查询商品
+     * @param minStock 最小库存值（包含）
+     * @param maxStock 最大库存值（包含）
+     * @return 符合库存范围的商品列表
+     */
+    @Override
+    public List<Product> findByStockBetween(Integer minStock, Integer maxStock) {
+        return productDao.findByStockBetween(minStock, maxStock);
+    }
+    
+    /**
+     * 查询指定库存值的商品
+     * @param stock 库存值
+     * @return 符合条件的商品列表
+     */
+    @Override
+    public List<Product> findByStock(Integer stock) {
+        return productDao.findByStock(stock);
+    }
 }

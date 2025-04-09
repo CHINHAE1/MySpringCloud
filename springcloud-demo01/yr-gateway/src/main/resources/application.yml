@@ -1,25 +1,49 @@
 server:
-  port: 8888
+  port: 8889
 
 spring:
   cloud:
     gateway:
       routes:
-        # 商品服务路由
-        - id: product-service
-          uri: lb://yr-product
+        # 规则一：库存 1-5000 路由到 yr-product-instance2 (端口 8091)
+        - id: product-route-low-stock
+          # uri: lb://yr-product-instance2  # 使用服务发现
+          uri: http://localhost:8091      # 或者直接指定 IP 和端口
           predicates:
-            # 路径断言，配置访问路径
+            # 匹配特定路径，这是我们刚添加的查询库存接口
+            - Path=/product/query-by-stock/**
+            # 使用自定义的 Stock 断言
+            - Stock=1, 5000
+            # 允许GET请求
+            - Method=GET 
+
+        # 规则二：库存 5001-10000 路由到 yr-product-instance3 (端口 8092)
+        - id: product-route-high-stock
+          # uri: lb://yr-product-instance3 # 使用服务发现 
+          uri: http://localhost:8092      # 或者直接指定 IP 和端口
+          predicates:
+            # 匹配特定路径
+            - Path=/product/query-by-stock/**
+            # 使用自定义的 Stock 断言
+            - Stock=5001, 10000
+            # 允许GET请求
+            - Method=GET
+
+        # 保持原有的通用商品服务路由
+        - id: product-service-general
+          uri: lb://yr-product # 指向通用的商品服务实例
+          predicates:
+            # 匹配其他不带 stock 参数或不在特定库存范围的商品请求
             - Path=/product/**
-            # 基于请求方法的断言，只允许GET和POST请求
+            # 确保 Method 断言存在，以匹配你的原始配置
             - Method=GET,POST
-            # 基于远程地址的断言，只允许特定IP段访问
+            # 恢复 RemoteAddr 断言
             - RemoteAddr=192.168.1.1/24,127.0.0.1,::1,0:0:0:0:0:0:0:1
           filters:
             # 添加请求头
-            - AddRequestHeader=X-Request-From, yr-gateway
+            - AddRequestHeader=X-Request-From, yr-gateway-general
             # 添加响应头
-            - AddResponseHeader=X-Response-From, yr-gateway
+            - AddResponseHeader=X-Response-From, yr-gateway-general
             
         # 订单服务路由
         - id: order-service
@@ -33,7 +57,7 @@ spring:
             - Cookie=sessionId, [a-zA-Z0-9]+
           filters:
             # 添加请求头
-            - AddRequestHeader=X-Request-From, yr-gateway
+            - AddRequestHeader=X-Request-From, yr-gateway-order
             # 为路径去除前缀，例如/order/api/xxx -> /api/xxx
             - StripPrefix=1
             # 设置响应状态码

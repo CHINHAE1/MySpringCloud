@@ -72,4 +72,48 @@ public class ProductController {
         List<Product> all = productService.findOne(name, price, stock);
         return new ResponseMyEntity(all);
     }
+    
+    /**
+     * 根据库存查询商品 - 用于测试库存断言
+     * 该接口会返回当前服务实例信息，以便验证路由是否正确
+     */
+    @GetMapping("/query-by-stock")
+    public ResponseMyEntity findByStock(@RequestParam(required = false) Integer stock) {
+        ResponseMyEntity responseMyEntity = new ResponseMyEntity();
+        
+        List<Product> products;
+        if (stock != null) {
+            // 查询指定库存的商品
+            products = productService.findByStock(stock);
+            responseMyEntity.put("stockValue", stock);
+        } else {
+            // 如果未提供stock参数，返回所有商品
+            products = productService.findAll();
+        }
+        
+        responseMyEntity.put("data", products);
+        responseMyEntity.put("serviceInfo", service_name + ":" + port); // 返回服务实例信息
+        responseMyEntity.put("product_name", product_name); // 返回配置的产品名称
+        
+        return responseMyEntity;
+    }
+    
+    /**
+     * 根据库存范围查询商品 - 用于测试库存断言
+     */
+    @GetMapping("/query-by-stock/range")
+    public ResponseMyEntity findByStockRange(
+            @RequestParam(defaultValue = "0") Integer minStock,
+            @RequestParam(defaultValue = "10000") Integer maxStock) {
+        
+        ResponseMyEntity responseMyEntity = new ResponseMyEntity();
+        List<Product> products = productService.findByStockBetween(minStock, maxStock);
+        
+        responseMyEntity.put("data", products);
+        responseMyEntity.put("stockRange", minStock + "-" + maxStock);
+        responseMyEntity.put("serviceInfo", service_name + ":" + port); // 返回服务实例信息
+        responseMyEntity.put("product_name", product_name); // 返回配置的产品名称
+        
+        return responseMyEntity;
+    }
 }
