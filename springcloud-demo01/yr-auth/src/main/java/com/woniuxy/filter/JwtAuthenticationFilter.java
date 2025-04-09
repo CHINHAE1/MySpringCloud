@@ -1,6 +1,5 @@
 package com.woniuxy.filter;
 
-import com.woniuxy.utils.JwtUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;

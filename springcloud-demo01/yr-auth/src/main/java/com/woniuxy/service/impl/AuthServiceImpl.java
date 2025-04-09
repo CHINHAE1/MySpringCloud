@@ -1,9 +1,10 @@
 package com.woniuxy.service.impl;
 
+import com.woniuxy.entity.User;
 import com.woniuxy.model.LoginRequest;
 import com.woniuxy.model.LoginResponse;
 import com.woniuxy.service.AuthService;
-import com.woniuxy.utils.JwtUtils;
+import com.woniuxy.utils.JWTUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -28,7 +29,7 @@ public class AuthServiceImpl implements AuthService {
     private AuthenticationManager authenticationManager;
 
     @Autowired
-    private JwtUtils jwtUtils;
+    private JWTUtils jwtUtils;
 
     @Override
     public LoginResponse authenticate(LoginRequest loginRequest) {
@@ -47,7 +48,7 @@ public class AuthServiceImpl implements AuthService {
             claims.put("username", userDetails.getUsername());
             // 这里可以添加更多声明，如用户ID、角色等
             
-            String token = jwtUtils.createJwt(claims);
+            String token = JWTUtils.createToken(userDetails.getUsername());
 
             // 构建并返回成功的登录响应
             return LoginResponse.builder()
@@ -76,5 +77,20 @@ public class AuthServiceImpl implements AuthService {
                     .message("服务器异常，请稍后再试")
                     .build();
         }
+    }
+
+    @Override
+    public User login(String username) {
+        // 这里应该连接数据库查询用户信息
+        // 为了示范，我们创建一个模拟用户
+        if ("admin".equals(username)) {
+            User user = new User();
+            user.setUid(1);
+            user.setUsername("admin");
+            user.setPassword("123456");
+            user.setTelphone("13800138000");
+            return user;
+        }
+        return null;
     }
 } 

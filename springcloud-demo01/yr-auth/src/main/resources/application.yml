@@ -1,19 +1,9 @@
+# 本地开发使用的配置，部署时这些配置将由Nacos提供
+# 这些配置在Nacos中不可用或出现问题时将作为备用
+# 注意：数据库和JPA配置现在已统一由shared-jdbc.yaml提供
+
 server:
   port: 8071
-spring:
-  application:
-    name: yr-auth  #这个名字后面注册中心要用
-  datasource:
-    driver-class-name: com.mysql.jdbc.Driver
-    url: jdbc:mysql:///java112_cloud?serverTimezone=UTC&useUnicode=true&characterEncoding=utf8&useSSL=false
-    username: root
-    password: root
-  #  jpa配置
-  jpa:
-    hibernate:
-      #      一旦实体类发生变化，则会自动更新这个数据库的表内容
-      # DDL数据定义语言（建表建库） DCL(用户)  DQL（CRUD）  DML（数据权限操作）
-      ddl-auto: update
-    #我mysql用的是5.7的
-    database-platform: org.hibernate.dialect.MySQL5Dialect
-    show-sql: true #打印sql语句执行慢的东西
+
+# 下面的本地备用配置仅在Nacos不可用时使用
+# 请优先维护Nacos中的配置，此处仅作为应急备份

@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: yr-auth  # 服务名称
+#  下面的就是nacos的注册中心的配置
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 47.109.92.14:8848
+      config:
+        server-addr: 47.109.92.14:8848
+        prefix: yr-auth  #类似 spring.application.name的名字，和配置中心的配置文件前缀
+        file-extension: yml  #文件扩展名  .yml
+        group: DEFAULT_GROUP  #看情况，根据公司要求配置即可
+#        namespace: Public   # 看情况，根据公司要求配置即可
+        # 引入共享配置
+        extension-configs:
+          - data-id: shared-jdbc.yaml
+            group: DEFAULT_GROUP
+            refresh: true
+        # 多环境配置
+  profiles:
+    active: dev  # 第二部分配置 yr-auth-dev
+
+# 设置日志级别，这部分可以移到Nacos配置中心
+logging:
+  level:
+    com.woniuxy: debug
+    org.springframework.web: info 

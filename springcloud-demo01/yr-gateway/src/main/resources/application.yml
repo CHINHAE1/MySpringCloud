@@ -5,6 +5,12 @@ spring:
   cloud:
     gateway:
       routes:
+        # Auth服务路由
+        - id: myh-auth # 路由id
+          uri: lb://yr-auth # 路由地址
+          predicates: # 路由条件
+            - Path=/auth/**
+            
         # 规则一：库存 1-5000 路由到 yr-product-instance2 (端口 8091)
         - id: product-route-low-stock
           # uri: lb://yr-product-instance2  # 使用服务发现
