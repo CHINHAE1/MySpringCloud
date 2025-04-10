@@ -11,6 +11,11 @@ spring:
         prefix: yr-oss
         file-extension: yml
         group: DEFAULT_GROUP
+        # 添加共享配置
+        shared-configs:
+          - data-id: shared-oss.yaml
+            group: DEFAULT_GROUP
+            refresh: true
   # 多环境配置
   profiles:
     active: dev 

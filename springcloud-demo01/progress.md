@@ -327,4 +327,45 @@
    - 执行`mvn clean install -DskipTests`完成所有模块的构建
    - 所有模块（包括yr-oss）都成功构建并安装到本地Maven仓库
 
-这个解决方案是临时性的，如果将来需要将OSS模块作为独立服务运行，需要使用兼容当前JDK版本的Spring Boot Maven Plugin。目前这个解决方案满足了当前使用Feign客户端调用OSS模块的需求。 
+这个解决方案是临时性的，如果将来需要将OSS模块作为独立服务运行，需要使用兼容当前JDK版本的Spring Boot Maven Plugin。目前这个解决方案满足了当前使用Feign客户端调用OSS模块的需求。
+
+## 2024-04-10 OSS服务内容协商机制问题修复
+
+### 1. 我们实现了哪些功能？
+
+1. 创建了`WebMvcConfig`配置类，继承`WebMvcConfigurationSupport`
+2. 实现了`extendMessageConverters`方法，扩展了消息转换器功能
+3. 为JSON转换器添加了对`MediaType.ALL`媒体类型的支持
+4. 解决了Spring MVC内容协商机制与配置冲突的问题
+
+### 2. 我们遇到了哪些错误？
+
+1. **内容协商(Content Negotiation)冲突**：
+   - 客户端请求时无法找到能满足期望的响应格式
+   - 报错：`HttpMediaTypeNotAcceptableException: Could not find acceptable representation`
+
+2. **消息转换器(Message Converter)配置不当**：
+   - 默认消息转换器无法处理Apifox/Postman发送的请求
+   - 特别是批量上传接口`/oss/uploads`无法正确返回JSON响应
+
+3. **响应类型与Accept头不匹配**：
+   - 客户端默认发送`Accept: */*`头，但服务端配置没有包含处理通用媒体类型的转换器
+
+### 3. 我们是如何解决这些错误的？
+
+1. **创建专门的MVC配置类**：
+   - 继承`WebMvcConfigurationSupport`而不是实现`WebMvcConfigurer`接口
+   - 这样可以完全控制MVC配置，避免与自动配置冲突
+
+2. **扩展而非替换消息转换器**：
+   - 使用`extendMessageConverters`而非`configureMessageConverters`
+   - 保留Spring Boot自动配置的转换器，仅进行必要的扩展
+
+3. **添加通用媒体类型支持**：
+   - 为`MappingJackson2HttpMessageConverter`添加`MediaType.ALL`支持
+   - 确保能处理客户端发送的任何Accept头
+
+4. **避免在控制器中指定限制性的produces属性**：
+   - 保持控制器方法的灵活性，让Spring更自由地选择合适的转换器
+
+这种解决方案保持了Spring Boot的自动配置优势，同时解决了特定场景下的内容协商问题。现在OSS服务的上传、删除和URL获取接口都能正确处理各种客户端请求并返回合适的JSON响应了。 
