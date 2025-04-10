@@ -11,6 +11,7 @@
     <module>yr-order</module>
     <module>yr-auth</module>
     <module>yr-gateway</module>
+    <module>yr-oss</module>
   </modules>
   <name>woniuxy</name>
   <!-- 项目打包依赖方式，jar，war，pom -->

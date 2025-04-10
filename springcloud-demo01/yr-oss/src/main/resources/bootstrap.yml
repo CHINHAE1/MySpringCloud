@@ -1,6 +1,6 @@
 spring:
   application:
-    name: yr-gateway
+    name: yr-oss
   # nacos配置
   cloud:
     nacos:
@@ -8,11 +8,9 @@ spring:
         server-addr: 47.109.92.14:8848
       config:
         server-addr: 47.109.92.14:8848
-        prefix: yr-gateway
+        prefix: yr-oss
         file-extension: yml
         group: DEFAULT_GROUP
-        shared-configs:
-          - data-id: shared-redis.yaml
   # 多环境配置
   profiles:
     active: dev 

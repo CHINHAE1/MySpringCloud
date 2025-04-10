@@ -15,6 +15,7 @@ spring:
         # 引入共享配置
         extension-configs:
           - data-id: shared-jdbc.yaml
+          - data-id: shared-redis.yaml
             group: DEFAULT_GROUP
             refresh: true
         # 多环境配置

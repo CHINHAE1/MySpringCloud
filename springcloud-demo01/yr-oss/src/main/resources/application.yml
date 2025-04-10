@@ -1,0 +1,32 @@
+server:
+  port: 8095
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+# 阿里云OSS配置，注意：实际配置信息需要自行替换
+aliyun:
+  oss:
+    endpoint: oss-cn-hangzhou.aliyuncs.com
+    accessKeyId: your-access-key-id
+    accessKeySecret: your-access-key-secret
+    bucketName: your-bucket-name
+    # URL有效期(单位: 秒)
+    expiration: 3600
+    # 上传文件大小限制(单位: MB)
+    maxSize: 100
+    # 允许的文件类型
+    allowedExtensions: jpg,jpeg,png,gif,bmp,doc,docx,xls,xlsx,pdf,txt,zip,rar
+
+# 暴露actuator端点
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always 

@@ -43,7 +43,7 @@ public class AuthGlobalFilter implements GlobalFilter,Ordered {
         //不是上诉请求，就需要校验token
         String refreshToken = exchange.getRequest().getHeaders().getFirst("Authorization");
         //判断是否有refreshToken
-        if (redisUtils.hasKey(refreshToken)) {
+        if (refreshToken != null && !refreshToken.isEmpty() && redisUtils.hasKey(refreshToken)) {
             //取出里面的内容
             Map<String, Object> content = redisUtils.hgetAll(refreshToken);
             String token = (String) content.get("token");

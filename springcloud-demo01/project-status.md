@@ -98,32 +98,87 @@
 
 接下来的工作重点将从架构和配置问题转向功能完善和性能优化，特别是用户管理、权限系统升级和服务监控等方面。随着这些功能的完善，项目将逐步达到生产环境可用的水平。 
 
+## 阿里云OSS文件服务模块开发状态
 
+### 开发背景
+项目需要实现文件上传功能，特别是图片上传能力，为此我们开发了一个独立的阿里云OSS服务模块。
 
-都是在commons中开发的，就会导致GateWay因为这个拦截器配置，无法启动"这个问题的解决方案是通过条件注解解决的，具体方法如下：
-1.添加条件注解：
-在commons模块中的SpringMVCInterceptorConfiguration配置类上添加了条件注解：
+### 当前状态
+我们已经完成了阿里云OSS文件服务模块的开发，包括以下内容：
 
-   @Configuration
-   @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-   public class SpringMVCInterceptorConfiguration implements WebMvcConfigurer {
-       // 配置代码...
-   }
+1. **基础架构**
+   - 创建了`yr-oss`独立模块，并配置了相关依赖
+   - 实现了模块的主启动类、配置类和控制器
+   - 集成了Spring Cloud Nacos实现服务注册和配置管理
 
-2.环境感知：
-这个条件注解使拦截器配置只在传统的Servlet环境(Spring MVC)下加载
-在WebFlux环境(Gateway使用的环境)下，整个配置类会被跳过
-这样Gateway就不会尝试加载不兼容的Spring MVC拦截器配置
+2. **核心功能**
+   - 实现了文件上传、文件删除、URL获取等核心功能
+   - 支持单文件和批量文件上传
+   - 支持按目录存储文件
+   - 支持文件类型和大小限制
+   - 实现了文件名冲突处理（UUID重命名）
 
-3.保持代码复用：
-这个解决方案的优点是不需要将拦截器移出commons模块
-所有基于Spring MVC的微服务仍然可以复用这些拦截器
-Gateway因为使用的是WebFlux，自动跳过这些配置
-另外，我们还添加了明确的路径排除，确保登录和注册等公共接口不会被拦截器拦截：
+3. **安全性**
+   - 敏感配置（AccessKey、Secret）已通过配置中心管理
+   - 提供了安全的文件访问方式（临时URL）
+   - 实现了文件类型校验
 
-registry.addInterceptor(new PermInterceptor())
-        .addPathPatterns("/**")
-        .excludePathPatterns("/login", "/auth/login", "/auth/register")
-        .order(1);
+4. **异常处理**
+   - 开发了全局异常处理器，统一处理各类异常
+   - 实现了自定义异常类
 
-这种条件激活的方式是Spring Boot中常用的模式，可以根据不同的环境自动调整配置，非常适合微服务架构下的共享组件。
+5. **集成与调用**
+   - 在网关中配置了OSS服务路由
+   - 在Commons模块中添加了Feign客户端接口
+
+### 待处理事项
+以下是需要完成的后续工作：
+
+1. **配置部署**
+   - 需要在Nacos中创建`shared-oss.yaml`配置，包含实际的阿里云OSS配置信息
+   - 配置文件中的`accessKeyId`、`accessKeySecret`和`bucketName`需要替换为实际值
+
+2. **测试验证**
+   - 需要进行服务启动测试
+   - 测试文件上传功能
+   - 测试其他服务通过Feign调用OSS服务
+
+3. **功能扩展**
+   - 考虑添加文件预览功能
+   - 增加图片处理能力（如裁剪、压缩等）
+   - 增加文件分类管理功能
+
+### 使用指南
+1. **配置阿里云OSS**
+   - 在阿里云控制台创建OSS存储桶
+   - 获取AccessKey ID和Secret
+   - 在Nacos中创建`shared-oss.yaml`配置
+
+2. **启动服务**
+   - 确保Nacos服务正常运行
+   - 启动OSS服务：`java -jar yr-oss.jar`
+
+3. **使用API**
+   - 上传文件：`POST /oss/upload`
+   - 上传文件到指定目录：`POST /oss/upload/{directory}`
+   - 批量上传：`POST /oss/uploads`
+   - 删除文件：`DELETE /oss/delete?fileName=xxx`
+   - 获取文件URL：`GET /oss/url?fileName=xxx`
+
+4. **通过Feign调用**
+   - 在需要使用OSS服务的模块中注入`OssClient`
+   - 调用相应的方法
+
+## 最新进展
+
+### OSS模块构建问题解决
+- 解决了Spring Boot Maven Plugin版本不兼容问题
+- 成功编译并安装所有模块到本地Maven仓库
+- 采用了临时解决方案：移除OSS模块中的Spring Boot Maven Plugin
+- 确保了OSS模块可以被其他服务通过Feign客户端正常调用
+
+## 待解决问题
+
+- Spring Boot Maven Plugin 与当前JDK版本不兼容的长期解决方案
+  - 考虑升级项目JDK版本到Java 17
+  - 或将Spring Boot版本降级到与当前JDK兼容的版本

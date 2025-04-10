@@ -69,6 +69,14 @@ spring:
             # 设置响应状态码
             - SetStatus=200
             
+        # OSS文件服务路由
+        - id: oss-service
+          uri: lb://yr-oss
+          predicates:
+            - Path=/oss/**
+          filters:
+            - AddRequestHeader=X-Request-From, yr-gateway-oss
+            
       # 全局默认过滤器，应用到所有路由
       default-filters:
         - AddResponseHeader=X-Global-Response, yr-gateway-global
